@@ -6,6 +6,7 @@ const cors = require('cors');
 
 const server = express();
 server.use(logger('dev'));
+server.use(cors());
 const port = 3000;
 
 server.use(bodyParser.json());
