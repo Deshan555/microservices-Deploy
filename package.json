@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon ./src/Server.js",
-    "auth": "nodemon ./src/AuthServer.js"
+    "dev-start": "nodemon ./src/Server.js",
+    "auth": "nodemon ./src/AuthServer.js",
+    "start" : "node ./src/Server.js"
   },
   "dependencies": {
     "axios": "^1.6.3",
