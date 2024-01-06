@@ -1,12 +1,12 @@
-// Desc: Database configuration
 const mysql = require('mysql');
 const util = require('util');
 
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'TeaCooperative',
+    host: 'mysql-146534cc-maxwon555-4b2b.a.aivencloud.com',
+    user: 'avnadmin',
+    password: 'AVNS_HkFtwGVfYhp952RnHRd',
+    database: 'teacooperative',
+    port: '15864',
 });
 
 // Promisify the query method
@@ -21,3 +21,5 @@ db.connect(err => {
 });
 
 module.exports = { db, query };
+
+
