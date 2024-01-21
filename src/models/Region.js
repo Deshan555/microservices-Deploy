@@ -4,7 +4,7 @@ const { query } = require('../config/database');
 const RegionModel = {
     getAllRegions: async () => {
         try {
-            const results = await query('SELECT * FROM Regions');
+            const results = await query('SELECT * FROM regions');
             return results;
         } catch (error) {
             throw error;
@@ -12,7 +12,7 @@ const RegionModel = {
     },
     addRegion: async (RegionID, RegionName) => {
         try {
-            const results = await query('INSERT INTO Regions (RegionID, RegionName) VALUES (?, ?)', [RegionID, RegionName]);
+            const results = await query('INSERT INTO regions (RegionID, RegionName) VALUES (?, ?)', [RegionID, RegionName]);
             return results;
         } catch (error) {
             throw error;
@@ -20,7 +20,7 @@ const RegionModel = {
     },
     getRegionByID: async (RegionID) => {
         try {
-            const results = await query('SELECT * FROM Regions WHERE RegionID = ?', [RegionID]);
+            const results = await query('SELECT * FROM regions WHERE RegionID = ?', [RegionID]);
             return results;
         } catch (error) {
             throw error;
@@ -28,7 +28,7 @@ const RegionModel = {
     },
     updateRegion: async (RegionID, RegionName) => {
         try {
-            const results = await query('UPDATE Regions SET RegionName = ? WHERE RegionID = ?', [RegionName, RegionID]);
+            const results = await query('UPDATE regions SET RegionName = ? WHERE RegionID = ?', [RegionName, RegionID]);
             return results;
         } catch (error) {
             throw error;
@@ -36,7 +36,7 @@ const RegionModel = {
     },
     deleteRegion: async (RegionID) => {
         try {
-            const results = await query('DELETE FROM Regions WHERE RegionID = ?', [RegionID]);
+            const results = await query('DELETE FROM regions WHERE RegionID = ?', [RegionID]);
             return results;
         } catch (error) {
             throw error;

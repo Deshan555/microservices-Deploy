@@ -4,7 +4,7 @@ const { query } = require('../config/database');
 const CustomerModel = {
     getAllCustomers: async () => {
         try {
-            const results = await query('SELECT * FROM Customers');
+            const results = await query('SELECT * FROM customers');
             return results;
         } catch (error) {
             throw error;
@@ -12,7 +12,7 @@ const CustomerModel = {
     },
     addCustomer: async (CustomerID, CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, RegistrationDate, CustomerPassword, IdentitiCardNumber, FactoryID) => {
         try {
-            const results = await query('INSERT INTO Customers (CustomerID, CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, RegistrationDate, Password, IdentitiCardNumber, FactoryID) ' +
+            const results = await query('INSERT INTO customers (CustomerID, CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, RegistrationDate, Password, IdentitiCardNumber, FactoryID) ' +
                 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [CustomerID, CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, RegistrationDate, CustomerPassword, IdentitiCardNumber, FactoryID]);
             return results;
         } catch (error) {
@@ -21,7 +21,7 @@ const CustomerModel = {
     },
     getCustomerByID: async (CustomerID) => {
         try {
-            const results = await query('SELECT * FROM Customers WHERE CustomerID = ?', [CustomerID]);
+            const results = await query('SELECT * FROM customers WHERE CustomerID = ?', [CustomerID]);
             return results;
         } catch (error) {
             throw error;
@@ -29,7 +29,7 @@ const CustomerModel = {
     },
     getCustomerByIdentitiCardNumber: async (IdentitiCardNumber) => {
         try {
-            console.log('SELECT * FROM Customers WHERE IdentitiCardNumber = ?', [IdentitiCardNumber]);
+            console.log('SELECT * FROM customers WHERE IdentitiCardNumber = ?', [IdentitiCardNumber]);
             const results = await query('SELECT * FROM Customers WHERE IdentitiCardNumber = ?', [IdentitiCardNumber]);
             return results;
         } catch (error) {
@@ -38,7 +38,7 @@ const CustomerModel = {
     },
     getCustomerByEmail: async (CustomerEmail) => {
         try {
-            const results = await query('SELECT * FROM Customers WHERE CustomerEmail = ?', [CustomerEmail]);
+            const results = await query('SELECT * FROM customers WHERE CustomerEmail = ?', [CustomerEmail]);
             return results;
         } catch (error) {
             throw error;
@@ -46,7 +46,7 @@ const CustomerModel = {
     },
     updateCustomerPassword: async (CustomerID, CustomerPassword) => {
         try {
-            const results = await query('UPDATE Customers SET CustomerPassword = ? WHERE CustomerID = ?', [CustomerPassword, CustomerID]);
+            const results = await query('UPDATE customers SET CustomerPassword = ? WHERE CustomerID = ?', [CustomerPassword, CustomerID]);
             return results;
         } catch (error) {
             throw error;
@@ -54,7 +54,7 @@ const CustomerModel = {
     },
     getCustomerOldPassword: async (CustomerID) => {
         try {
-            const results = await query('SELECT CustomerPassword FROM Customers WHERE CustomerID = ?', [CustomerID]);
+            const results = await query('SELECT CustomerPassword FROM customers WHERE CustomerID = ?', [CustomerID]);
             return results;
         } catch (error) {
             throw error;
@@ -62,7 +62,7 @@ const CustomerModel = {
     },
     updateCustomer: async (CustomerID, CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, RegistrationDate, TeaLeavesProvided, FactoryID) => {
         try {
-            const results = await query('UPDATE Customers SET CustomerName = ?, CustomerMobile = ?, CustomerAddress = ?, CustomerEmail = ?, CustomerType = ?, RegistrationDate = ?, TeaLeavesProvided = ?, FactoryID = ? WHERE CustomerID = ?', [CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, RegistrationDate, TeaLeavesProvided, FactoryID, CustomerID]);
+            const results = await query('UPDATE customers SET CustomerName = ?, CustomerMobile = ?, CustomerAddress = ?, CustomerEmail = ?, CustomerType = ?, RegistrationDate = ?, TeaLeavesProvided = ?, FactoryID = ? WHERE CustomerID = ?', [CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, RegistrationDate, TeaLeavesProvided, FactoryID, CustomerID]);
             return results;
         } catch (error) {
             throw error;
@@ -70,7 +70,7 @@ const CustomerModel = {
     },
     deleteCustomer: async (CustomerID) => {
         try {
-            const results = await query('DELETE FROM Customers WHERE CustomerID = ?', [CustomerID]);
+            const results = await query('DELETE FROM customers WHERE CustomerID = ?', [CustomerID]);
             return results;
         } catch (error) {
             throw error;

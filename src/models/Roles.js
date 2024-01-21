@@ -4,14 +4,14 @@ const { query } = require('../config/database');
 const RoleModel = {
     getAllRoles: async () => {
         try {
-            return await query('SELECT * FROM UserRoles');
+            return await query('SELECT * FROM userroles');
         } catch (error) {
             throw error;
         }
     },
     addRole: async (RoleName, CreationDate, Description) => {
         try {
-            return await query('INSERT INTO UserRoles (RoleName, CreationDate, Description) VALUES (?, ?, ?)',
+            return await query('INSERT INTO userroles (RoleName, CreationDate, Description) VALUES (?, ?, ?)',
                 [RoleName, CreationDate, Description]);
         } catch (error) {
             throw error;
@@ -19,21 +19,21 @@ const RoleModel = {
     },
     getRoleByID: async (RoleID) => {
         try {
-            return await query('SELECT * FROM UserRoles WHERE RoleID = ?', [RoleID]);
+            return await query('SELECT * FROM userroles WHERE RoleID = ?', [RoleID]);
         } catch (error) {
             throw error;
         }
     },
     updateRole: async (RoleID, RoleName, Description) => {
         try {
-            return await query('UPDATE UserRoles SET RoleName = ?, Description = ? WHERE RoleID = ?', [RoleName, Description, RoleID]);
+            return await query('UPDATE userroles SET RoleName = ?, Description = ? WHERE RoleID = ?', [RoleName, Description, RoleID]);
         } catch (error) {
             throw error;
         }
     },
     deleteRole: async (RoleID) => {
         try {
-            return await query('DELETE FROM UserRoles WHERE RoleID = ?', [RoleID]);
+            return await query('DELETE FROM userroles WHERE RoleID = ?', [RoleID]);
         } catch (error) {
             throw error;
         }

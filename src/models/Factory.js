@@ -4,7 +4,7 @@ const { query } = require('../config/database');
 const FactoryModel = {
     getAllFactories: async () => {
         try {
-            const results = await query('SELECT * FROM Factories');
+            const results = await query('SELECT * FROM factories');
             return results;
         } catch (error) {
             throw error;
@@ -12,7 +12,7 @@ const FactoryModel = {
     },
     addFactory: async (FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID) => {
         try {
-            const results = await query('INSERT INTO Factories (FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID) VALUES (?, ?, ?, ?, ?, ?, ?)', [FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID]);
+            const results = await query('INSERT INTO factories (FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID) VALUES (?, ?, ?, ?, ?, ?, ?)', [FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID]);
             return results;
         } catch (error) {
             throw error;
@@ -20,7 +20,7 @@ const FactoryModel = {
     },
     getFactoryByID: async (FactoryID) => {
         try {
-            const results = await query('SELECT * FROM Factories WHERE FactoryID = ?', [FactoryID]);
+            const results = await query('SELECT * FROM factories WHERE FactoryID = ?', [FactoryID]);
             return results;
         } catch (error) {
             throw error;
@@ -28,7 +28,7 @@ const FactoryModel = {
     },
     updateFactory: async (FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID) => {
         try {
-            const results = await query('UPDATE Factories SET FactoryName = ?, FactorySize = ?, FactoryMobile = ?, FactoryAddress = ?, FactoryEmail = ?, RegionID = ? WHERE FactoryID = ?', [FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID, FactoryID]);
+            const results = await query('UPDATE factories SET FactoryName = ?, FactorySize = ?, FactoryMobile = ?, FactoryAddress = ?, FactoryEmail = ?, RegionID = ? WHERE FactoryID = ?', [FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID, FactoryID]);
             return results;
         } catch (error) {
             throw error;
@@ -36,7 +36,7 @@ const FactoryModel = {
     },
     deleteFactory: async (FactoryID) => {
         try {
-            const results = await query('DELETE FROM Factories WHERE FactoryID = ?', [FactoryID]);
+            const results = await query('DELETE FROM factories WHERE FactoryID = ?', [FactoryID]);
             return results;
         } catch (error) {
             throw error;

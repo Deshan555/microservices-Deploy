@@ -4,7 +4,7 @@ const { query } = require('../config/database');
 const FertilizerInfoModel = {
     getAllFertilizerInfo: async () => {
         try {
-            const results = await query('SELECT * FROM FertilizerInfo');
+            const results = await query('SELECT * FROM fertilizerinfo');
             return results;
         } catch (error) {
             throw error;
@@ -12,7 +12,7 @@ const FertilizerInfoModel = {
     },
     addFertilizerInfo: async (FertilizerID, FertilizerName, FertilizerType, FertilizerQuantity, FertilizerCost, FertilizerDate, FieldID) => {
         try {
-            const results = await query('INSERT INTO FertilizerInfo (FertilizerID, FertilizerName, FertilizerType, FertilizerQuantity, FertilizerCost, FertilizerDate, FieldID) VALUES (?, ?, ?, ?, ?, ?, ?)', [FertilizerID, FertilizerName, FertilizerType, FertilizerQuantity, FertilizerCost, FertilizerDate, FieldID]);
+            const results = await query('INSERT INTO fertilizerinfo (FertilizerID, FertilizerName, FertilizerType, FertilizerQuantity, FertilizerCost, FertilizerDate, FieldID) VALUES (?, ?, ?, ?, ?, ?, ?)', [FertilizerID, FertilizerName, FertilizerType, FertilizerQuantity, FertilizerCost, FertilizerDate, FieldID]);
             return results;
         } catch (error) {
             throw error;
@@ -20,7 +20,7 @@ const FertilizerInfoModel = {
     },
     getFertilizerInfoByID: async (FertilizerID) => {
         try {
-            const results = await query('SELECT * FROM FertilizerInfo WHERE FertilizerID = ?', [FertilizerID]);
+            const results = await query('SELECT * FROM fertilizerinfo WHERE FertilizerID = ?', [FertilizerID]);
             return results;
         } catch (error) {
             throw error;
@@ -28,7 +28,7 @@ const FertilizerInfoModel = {
     },
     updateFertilizerInfo: async (FertilizerID, FertilizerName, FertilizerType, FertilizerQuantity, FertilizerCost, FertilizerDate, FieldID) => {
         try {
-            const results = await query('UPDATE FertilizerInfo SET FertilizerName = ?, FertilizerType = ?, FertilizerQuantity = ?, FertilizerCost = ?, FertilizerDate = ?, FieldID = ? WHERE FertilizerID = ?', [FertilizerName, FertilizerType, FertilizerQuantity, FertilizerCost, FertilizerDate, FieldID, FertilizerID]);
+            const results = await query('UPDATE fertilizerinfo SET FertilizerName = ?, FertilizerType = ?, FertilizerQuantity = ?, FertilizerCost = ?, FertilizerDate = ?, FieldID = ? WHERE FertilizerID = ?', [FertilizerName, FertilizerType, FertilizerQuantity, FertilizerCost, FertilizerDate, FieldID, FertilizerID]);
             return results;
         } catch (error) {
             throw error;
@@ -36,7 +36,7 @@ const FertilizerInfoModel = {
     },
     deleteFertilizerInfo: async (FertilizerID) => {
         try {
-            const results = await query('DELETE FROM FertilizerInfo WHERE FertilizerID = ?', [FertilizerID]);
+            const results = await query('DELETE FROM fertilizerinfo WHERE FertilizerID = ?', [FertilizerID]);
             return results;
         } catch (error) {
             throw error;
