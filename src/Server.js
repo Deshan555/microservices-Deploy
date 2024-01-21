@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const endPoints = require('./routes/Routes');
@@ -14,4 +15,5 @@ server.use('/thaprobane/core/v01', endPoints);
 
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+    console.log("Application Version : "+process.env.APP_VERSION);
 });
