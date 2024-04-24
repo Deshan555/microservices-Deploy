@@ -4,28 +4,6 @@ const { successResponse, errorResponse } = require('../utils/responseUtils');
 const {getPolicyByName} = require("./Policies");
 const policy = getPolicyByName('fetchAllData');
 
-/*function authenticateToken(req, res, policy, next) {
-    const authHeader = req.headers['authorization'];
-    console.log('authHeader', authHeader);
-    const token = authHeader && authHeader.split(' ')[1];
-
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    const { userType, userId } = decoded.user.signData;
-    console.log('decoded userType : ', userType);
-
-    validateUserROLEbyToken(userType, policy);
-
-    if (token === null)
-        return errorResponse(res, 'Access Token is required', 401);
-    if (token === undefined)
-        return errorResponse(res, 'Access Token is required', 401);
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-        if (err)
-            return errorResponse(res, 'Expired, Invalid Access Token, Or Access Token Has Been Changed By SomeOne', 403);
-        req.user = user;
-        next();
-    });
-}*/
 function authenticateToken(policy) {
     return function(req, res, next) {
         const authHeader = req.headers['authorization'];

@@ -9,7 +9,6 @@ const db = mysql.createConnection({
     port: '15864',
 });
 
-// Promisify the query method
 const query = util.promisify(db.query).bind(db);
 
 db.connect(err => {
@@ -21,5 +20,3 @@ db.connect(err => {
 });
 
 module.exports = { db, query };
-
-

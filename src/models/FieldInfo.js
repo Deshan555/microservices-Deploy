@@ -64,6 +64,13 @@ const FieldInfoModel = {
         } catch (error) {
             logger.error('Error deleting fieldInfo:', error);
         }
+    },
+    fieldListByUserID: async (UserID) => {
+        try {
+            return await query('SELECT * FROM fieldinfo WHERE OwnerID = ?', [UserID]);
+        } catch (error) {
+            logger.error('Error getting fieldInfo by UserID:', error);
+        }
     }
 };
 

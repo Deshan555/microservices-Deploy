@@ -4,7 +4,20 @@ const logger = require("../config/logger");
 const EnvironmentalZoneModel = {
     getAllEnvironmentalZone: async () => {
         try {
-            return await query('SELECT * FROM environmentalzone');
+            return await query(`
+            SELECT 
+                ez.ZoneID,
+                ez.ZoneName,
+                ez.BaseLocation,
+                ez.CreationDate,
+                COUNT(fi.FieldID) AS NumberOfFieldsRegistered
+            FROM 
+                environmentalzone ez
+            LEFT JOIN 
+                fieldinfo fi ON ez.ZoneID = fi.ZoneID
+            GROUP BY 
+                ez.ZoneID, ez.ZoneName, ez.BaseLocation
+            `);
         } catch (error) {
             logger.error('Error getting EnvironmentalZone:', error);
         }
@@ -47,3 +60,4 @@ const EnvironmentalZoneModel = {
 };
 
 module.exports = EnvironmentalZoneModel;
+

@@ -13,17 +13,37 @@ const FertilizerInfoController = {
         }
     },
     addFertilizerInfo: async (req, res) => {
-        const { FertilizerID, FertilizerName, FertilizerType, FertilizerPrice, FertilizerQuantity, FertilizerDescription } = req.body;
-
-        if (!FertilizerID || !FertilizerName || !FertilizerType || !FertilizerPrice || !FertilizerQuantity || !FertilizerDescription) {
-            return errorResponse(res, 'FertilizerID, FertilizerName, FertilizerType, FertilizerPrice, FertilizerQuantity and FertilizerDescription are required fields', 400);
+        const {
+            FertilizerName, 
+            FertilizerType, 
+            FertilizerPrice, 
+            FertilizerQuantity, 
+            FertilizerDescription, 
+            VendorName, 
+            CodeName, 
+            InstructionsToStore, 
+            InstructionsToUse} = req.body;
+        if (!FertilizerName || !FertilizerType || !FertilizerPrice || !FertilizerQuantity || !FertilizerDescription || !VendorName || !CodeName || !InstructionsToStore || !InstructionsToUse) {
+            return errorResponse(res, 'FertilizerName, FertilizerType, FertilizerPrice, FertilizerQuantity, FertilizerDescription, VendorName, CodeName, InstructionsToStore and InstructionsToUse are required fields', 400);
         }
         try {
-            const result = await FertilizerInfoModel.addFertilizerInfo(FertilizerID, FertilizerName, FertilizerType, FertilizerPrice, FertilizerQuantity, FertilizerDescription);
+            const fartilizerInfoID = Math.floor(Math.random() * 1000000);
+            const result = await FertilizerInfoModel.addFertilizerInfo(fartilizerInfoID, FertilizerName, CodeName, FertilizerType, FertilizerPrice, FertilizerQuantity, VendorName, FertilizerDescription, InstructionsToStore, InstructionsToUse);
             successResponse(res, 'FertilizerInfo added successfully', result);
         } catch (error) {
             console.error('Error adding fertilizerInfo:', error);
             errorResponse(res, 'Error Occurred while adding fertilizerInfo : '+error);
+        }
+    },
+    updateFertilizerInfo: async (req, res) => {
+        const {FertilizerID} = req.params;
+        const {FertilizerName, FertilizerType, FertilizerPrice, FertilizerQuantity, FertilizerDescription, VendorName, CodeName, InstructionsToStore, InstructionsToUse} = req.body;
+        try {
+            const result = await FertilizerInfoModel.updateFertilizerInfo(FertilizerID, FertilizerName, FertilizerType, FertilizerQuantity, FertilizerPrice, FertilizerDescription, VendorName, CodeName, InstructionsToStore, InstructionsToUse);
+            successResponse(res, 'FertilizerInfo updated successfully', result);
+        } catch (error) {
+            console.error('Error updating fertilizerInfo:', error);
+            errorResponse(res, 'Error Occurred while updating fertilizerInfo : '+error);
         }
     },
     getFertilizerInfoByID: async (req, res) => {
@@ -38,17 +58,6 @@ const FertilizerInfoController = {
         }
 
     },
-    updateFertilizerInfo: async (req, res) => {
-        const {FertilizerID} = req.params;
-        const {FertilizerName, FertilizerType, FertilizerPrice, FertilizerQuantity, FertilizerDescription} = req.body;
-        try {
-            const result = await FertilizerInfoModel.updateFertilizerInfo(FertilizerID, FertilizerName, FertilizerType, FertilizerPrice, FertilizerQuantity, FertilizerDescription);
-            successResponse(res, 'FertilizerInfo updated successfully', result);
-        } catch (error) {
-            console.error('Error updating fertilizerInfo:', error);
-            errorResponse(res, 'Error Occurred while updating fertilizerInfo : '+error);
-        }
-    },
     deleteFertilizerInfo: async (req, res) => {
         const {FertilizerID} = req.params;
         try {
@@ -58,7 +67,7 @@ const FertilizerInfoController = {
             console.error('Error deleting fertilizerInfo:', error);
             errorResponse(res, 'Error Occurred while deleting fertilizerInfo : ' + error);
         }
-    }
+    },
 };
 
 module.exports = FertilizerInfoController;

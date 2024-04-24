@@ -16,6 +16,7 @@ const AuthControl = {
         const {customerEmail, password} = req.body;
         try {
             const results = await customerModel.getCustomerByEmail(customerEmail);
+            console.log(results);
             let passwordFromDataBase = '';
             if(results.length === 0)
                 return errorResponse(res, 'Can Not Find Customer With Given Email Address', 404);
@@ -34,21 +35,34 @@ const AuthControl = {
                     );
                     const deleteToken = await JWTTokenModel.deleteTokenCustomerByRefreshToken(results[0].CustomerID);
                     console.log('Delete Token : '+deleteToken);
+                    const authenticatedTime = new Date();
                     const accessToken = await generateAccessToken({ signData });
                     const refreshToken = await generateRefreshToken({ signData });
+                    const accessTokenExpireDate = new Date(authenticatedTime.getTime() + 3 * 24 * 60 * 60 * 1000);
+                    const refreshTokenExpireDate = new Date(authenticatedTime.getTime() + 7 * 24 * 60 * 60 * 1000);
                     const pushTokens = await JWTTokenModel.pushaddTokenCustomer(accessToken, refreshToken, results[0].CustomerID);
+
+                    const customerName = results[0].CustomerName;
+                    const customerEmail = results[0].CustomerEmail;
+                    const customerID = results[0].CustomerID;
+                    const userRole = 'ROLE.CUSTOMER';
+
                     if(pushTokens.affectedRows === 0) {
                         return errorResponse(res, 'Error Occurred while generating access token : ' + err);
                     }else {
-                        successResponse(res, 'Customer authenticated successfully', {accessToken, refreshToken});
+                        successResponse(res, 'Customer authenticated successfully', {
+                            accessToken, 
+                            refreshToken,
+                            accessTokenExpireDate,
+                            refreshTokenExpireDate,
+                            customerName,
+                            customerEmail,
+                            customerID,
+                            userRole
+                        });  
                     }
                 }
-                    /*jwt.sign({results}, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '30s'},(err, token) => {
-                        if(err) return errorResponse(res, 'Error Occurred while generating access token : '+err);
-                        successResponse(res, 'Customer authenticated successfully', token)
-                    });*/
         } catch (error) {
-            console.error('Error authenticating customer:', error);
             errorResponse(res, 'Error Occurred while authenticating customer : '+error);
         }
     },
@@ -81,7 +95,11 @@ const AuthControl = {
                 if (getSignData.length === 0 || pushTokens.affectedRows === 0) {
                     return errorResponse(res, 'Error Occurred while generating access token');
                 }
-                successResponse(res, 'New Access Token Generated Successfully', { accessToken, refreshToken });
+                successResponse(res, 'New Access Token Generated Successfully', 
+                { 
+                    accessToken, 
+                    refreshToken 
+                });
             });
         } catch (error) {
             console.error('Error generating new access token:', error);
@@ -90,13 +108,15 @@ const AuthControl = {
     },
     authEmployee: async (req, res) => {
         const {email, password} = req.body;
+        console.log(email, password);
         try{
             const results = await EmployeeModel.getEmployeeByEmail(email);
-            const empRole = await RoleModel.getRoleByID(results[0].RoleID);
             let passwordFromDataBase = '';
+            let empRole = '';
             if(results.length === 0)
                 return errorResponse(res, 'Can Not Find Employee With Given Email Address', 404);
             else
+                empRole = await RoleModel.getRoleByID(results[0].RoleID);
                 passwordFromDataBase = results[0].Password;
                 const passwordMatch = await bcrypt.comparePassword(password, passwordFromDataBase);
                 if(passwordMatch === false)
@@ -113,11 +133,25 @@ const AuthControl = {
                     console.log('Delete Token : '+deleteToken);
                     const accessToken = await generateAccessToken({ signData });
                     const refreshToken = await generateRefreshToken({ signData });
+                    const authenticatedTime = new Date();
+                    const accessTokenExpireDate = new Date(authenticatedTime.getTime() + 3 * 24 * 60 * 60 * 1000);
+                    const refreshTokenExpireDate = new Date(authenticatedTime.getTime() + 7 * 24 * 60 * 60 * 1000);
+                    const userRole = empRole[0].RoleName;
+                    const authEmplyeeID = results[0].EmployeeID;
+                    const employeeNameRegistered = results[0].EmployeeName;
                     const pushTokens = await JWTTokenModel.pushTokenEmployee(accessToken, refreshToken, results[0].EmployeeID);
                     if(pushTokens.affectedRows === 0) {
                         return errorResponse(res, 'Error Occurred while generating access token : ' + err);
                     }else {
-                        successResponse(res, 'Employee authenticated successfully', {accessToken, refreshToken});
+                        successResponse(res, 'Employee authenticated successfully', {
+                            accessToken, 
+                            refreshToken,
+                            accessTokenExpireDate,
+                            refreshTokenExpireDate,
+                            userRole,
+                            authEmplyeeID,
+                            employeeNameRegistered                     
+                        });
                     }
                 }
         } catch (error) {

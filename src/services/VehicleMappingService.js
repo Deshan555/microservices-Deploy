@@ -28,6 +28,7 @@ const VehicleMappingsController = {
             DriverID,
             RouteID
         } = req.body;
+        console.log(VehicleNumber, VehicleType, VolumeCapacity, WeightCapacity, NumberPlateID, FactoryID, DriverID, RouteID);
         const VehicleID = Math.floor(Math.random() * 1000000000);
         if (!VehicleNumber || !VehicleType || !VolumeCapacity || !WeightCapacity || !NumberPlateID || !FactoryID || !DriverID || !RouteID) {
             return errorResponse(res, 'VehicleNumber, VehicleType, VolumeCapacity, WeightCapacity, NumberPlateID, FactoryID, DriverID and RouteID are required fields', 400);

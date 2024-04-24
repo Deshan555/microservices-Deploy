@@ -30,7 +30,7 @@ const CustomerModel = {
     getCustomerByIdentitiCardNumber: async (IdentitiCardNumber) => {
         try {
             console.log('SELECT * FROM customers WHERE IdentitiCardNumber = ?', [IdentitiCardNumber]);
-            const results = await query('SELECT * FROM Customers WHERE IdentitiCardNumber = ?', [IdentitiCardNumber]);
+            const results = await query('SELECT * FROM customers WHERE IdentitiCardNumber = ?', [IdentitiCardNumber]);
             return results;
         } catch (error) {
             throw error;
@@ -46,7 +46,7 @@ const CustomerModel = {
     },
     updateCustomerPassword: async (CustomerID, CustomerPassword) => {
         try {
-            const results = await query('UPDATE customers SET CustomerPassword = ? WHERE CustomerID = ?', [CustomerPassword, CustomerID]);
+            const results = await query('UPDATE customers SET Password = ? WHERE CustomerID = ?', [CustomerPassword, CustomerID]);
             return results;
         } catch (error) {
             throw error;
@@ -60,9 +60,9 @@ const CustomerModel = {
             throw error;
         }
     },
-    updateCustomer: async (CustomerID, CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, RegistrationDate, TeaLeavesProvided, FactoryID) => {
+    updateCustomer: async (CustomerID, CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, FactoryID) => {
         try {
-            const results = await query('UPDATE customers SET CustomerName = ?, CustomerMobile = ?, CustomerAddress = ?, CustomerEmail = ?, CustomerType = ?, RegistrationDate = ?, TeaLeavesProvided = ?, FactoryID = ? WHERE CustomerID = ?', [CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, RegistrationDate, TeaLeavesProvided, FactoryID, CustomerID]);
+            const results = await query('UPDATE customers SET CustomerName = ?, CustomerMobile = ?, CustomerAddress = ?, CustomerEmail = ?, CustomerType = ?, FactoryID = ? WHERE CustomerID = ?', [CustomerName, CustomerMobile, CustomerAddress, CustomerEmail, CustomerType, FactoryID, CustomerID]);
             return results;
         } catch (error) {
             throw error;
