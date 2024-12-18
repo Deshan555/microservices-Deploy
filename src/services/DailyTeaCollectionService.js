@@ -1,6 +1,7 @@
 const DailyTeaCollectionModel = require('../models/DailyTeaCollection');
 const FieldInfoModel = require('../models/FieldInfo');
 const EmployeeModel = require('../models/Employees');
+const MonthlyRatesModel = require('../models/MonthlyRates');
 const { successResponse, errorResponse } = require('../utils/responseUtils');
 const { logger } = require('../config/logger');
 const { UUID } = require('sequelize');
@@ -113,7 +114,6 @@ const DailyTeaCollectionController = {
         }
     },
     addBulkRecordsImportFromAdmin : async (req, res) => {
-        console.log(req.body);
         const failedList = [];
         try {
             const dataLength = req?.body?.data?.length;
@@ -261,6 +261,54 @@ const DailyTeaCollectionController = {
             errorResponse(res, 'Error Occurred while fetching dailyTeaCollection : '+error);
         }
     },
+    getTeaCollectionReportInMonth: async (req, res) => {
+        const {fieldID, targetMonth, targetYear} = req.body;
+        try {
+            const rateData = await MonthlyRatesModel.getMonthlyRatesByMonthAndYear(targetMonth, targetYear).then((data) => {
+                return data[0].rate_per_kg;
+            });
+            const startDate = new Date(targetYear, targetMonth - 1, 1).toISOString().split('T')[0];
+            const endDate = new Date(targetYear, targetMonth, 0).toISOString().split('T')[0];
+            const results = await DailyTeaCollectionModel.getCollectionByFieldIDandTimeRange(fieldID, startDate, endDate).then((data) => {
+                return data;
+            });
+            if(results.length === 0) return errorResponse(res, 'No dailyTeaCollection found', 404);
+            const finalData = results.map((item) => {
+                return {
+                    ...item,
+                    rate_per_kg: rateData,
+                    totalAmount: rateData * item.ActualTeaWeight
+                }
+            });
+            const getMonthlyStatics = finalData.reduce((acc, item) => {
+                acc.totalTeaWeight += item.ActualTeaWeight;
+                acc.totalAmount += item.totalAmount;
+                acc.waterWeightCollected += item.WaterWeightCollected;
+                acc.startDate = startDate;
+                acc.endDate = endDate;
+                return acc;
+            }, {totalTeaWeight: 0, totalAmount: 0, waterWeightCollected: 0});
+
+            let responseJson = {
+                monthlyStatic : getMonthlyStatics,
+                collection : finalData
+            }
+            successResponse(res, 'DailyTeaCollection retrieved successfully', responseJson);
+
+        } catch (error) {
+            errorResponse(res, 'Error Occurred while fetching dailyTeaCollection : '+error);
+        }
+    },
+    getAllMonthlyTeaCollectionSummery : async (req, res) => {
+        const {FieldID} = req.params;
+        try {
+            const results = await DailyTeaCollectionModel.getTeaCollectionSUMByMonthesAndRouteID(FieldID);
+            if(results.length === 0) return errorResponse(res, 'No dailyTeaCollection foundXX', 404);
+            successResponse(res, 'DailyTeaCollection retrieved successfully', results)
+        } catch (error) {
+            errorResponse(res, 'Error Occurred while fetching dailyTeaCollection : '+error);
+        }
+    }
 };
 
 module.exports = DailyTeaCollectionController;
