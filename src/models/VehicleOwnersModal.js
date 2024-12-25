@@ -19,6 +19,13 @@ const VehicleOwnersModel = {
             throw error;
         }
     },
+    getOwnerBasicDetails: async () => {
+        try {
+            return await query('SELECT Id, isCompany, FullName, CompanyName FROM VehicleOwners');
+        } catch (error) {
+            throw error;
+        }
+    },
     getOwnerByID: async (OwnerId) => {
         try {
             return await query('SELECT * FROM VehicleOwners WHERE Id = ?', [OwnerId]);
