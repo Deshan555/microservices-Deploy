@@ -23,6 +23,7 @@ const ChartsModel = {
         try {
             const results = await query(`SELECT
         rr.RoutingID AS RouteID,
+        rr.Destination AS RouteName,
         COALESCE(SUM(dc.ActualTeaWeight), 0) AS TotalTeaWeight
     FROM
         roadrouting rr
