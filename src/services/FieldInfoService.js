@@ -1,20 +1,38 @@
 const FieldInfoModel = require('../models/FieldInfo');
+const NodeCache = require('node-cache');
 const CustomerModel = require('../models/Customers');
 const FactoryModel = require('../models/Factory');
 const ZoneModel = require('../models/EnvironmentalZone');
 const RouteModel = require('../models/RoadRouting');
 const { successResponse, errorResponse } = require('../utils/responseUtils');
 const logger = require('../config/logger');
+const cache = new NodeCache({ stdTTL: 300 }); 
+const cacheKey = 'allFieldInfos';
 
 const FieldInfoController = {
+    // getAllFieldInfos: async (req, res) => {
+    //     try {
+    //         const results = await FieldInfoModel.getAllFieldInfo();
+    //         if(results.length === 0) return errorResponse(res, 'No fieldInfos found', 404);
+    //         successResponse(res, 'FieldInfos retrieved successfully', results)
+    //     } catch (error) {
+    //         console.error('Error getting fieldInfos:', error);
+    //         errorResponse(res, 'Error Occurred while fetching fieldInfos : '+error);
+    //     }
+    // },
     getAllFieldInfos: async (req, res) => {
         try {
+            const cachedData = cache.get(cacheKey);
+            if (cachedData) {
+                return successResponse(res, 'FieldInfos retrieved successfully from cache', cachedData);
+            }
             const results = await FieldInfoModel.getAllFieldInfo();
-            if(results.length === 0) return errorResponse(res, 'No fieldInfos found', 404);
-            successResponse(res, 'FieldInfos retrieved successfully', results)
+            if (results.length === 0) return errorResponse(res, 'No fieldInfos found', 404);
+            cache.set(cacheKey, results);
+            successResponse(res, 'FieldInfos retrieved successfully', results);
         } catch (error) {
             console.error('Error getting fieldInfos:', error);
-            errorResponse(res, 'Error Occurred while fetching fieldInfos : '+error);
+            errorResponse(res, 'Error Occurred while fetching fieldInfos : ' + error);
         }
     },
     addFieldInfo: async (req, res) => {
@@ -59,6 +77,7 @@ const FieldInfoController = {
             };
             successResponse(res, 'Register New FieldInfo successfully', response);
             logger.info('Register New FieldInfo successfully');
+            cache.del(cacheKey);
         } catch (error) {
             console.error('Error adding fieldInfo:', error);
             errorResponse(res, 'Error Occurred while adding fieldInfo : '+error);
@@ -104,6 +123,7 @@ const FieldInfoController = {
             if(environmentalZone.length === 0) return errorResponse(res, 'EnvironmentalZone not found', 404);
             const result = await FieldInfoModel.updateFieldInfo(fieldID, fieldSize, fieldType, fieldAddress, teaType, baseLocation, baseElevation, soilType, attitude, longitude, routeID, ownerID, zoneID, factoryID);
             const updatedFieldInfo = await FieldInfoModel.getFieldInfoByID(fieldID);
+            cache.del(cacheKey);
             successResponse(res, 'FieldInfo updated successfully', updatedFieldInfo);
         } catch (error) {
             console.error('Error updating fieldInfo:', error);
@@ -114,6 +134,7 @@ const FieldInfoController = {
         const {FieldID} = req.params;
         try {
             await FieldInfoModel.deleteFieldInfo(FieldID);
+            cache.del(cacheKey);
             successResponse(res, 'FieldInfo deleted successfully', null);
         } catch (error) {
             console.error('Error deleting fieldInfo:', error);
@@ -168,7 +189,33 @@ const FieldInfoController = {
             logger.error('Error getting fieldInfo by UserID:', error);
             errorResponse(res, 'Error Occurred while fetching fieldInfo by UserID : ' + error);
         }
-    }
+    },
+    allFieldsWithNameWithID: async (req, res) => {
+        try{
+            const response = await FieldInfoModel.allFieldsWithNameWithID();
+            try{
+                if(response.length === 0) return errorResponse(res, 'FieldInfo not found', 404);
+                successResponse(res, 'FieldInfo retrieved successfully', response);
+            } catch (error){
+                logger.error('Error getting fieldInfo by UserID:', error);
+                errorResponse(res, 'Error Occurred while fetching fieldInfo by UserID : ' + error);
+            }
+        } catch (error){
+            logger.error('Error getting fieldInfo by UserID:', error);
+            errorResponse(res, 'Error Occurred while fetching fieldInfo by UserID : ' + error);
+        }
+    },
+    getFilteredFieldInfo: async (req, res) => {
+        const filters = req.body;
+        try {
+            const results = await FieldInfoModel.getFilteredFieldInfo(filters);
+            if (results.length === 0) return errorResponse(res, 'FieldInfo not found', 404);
+            successResponse(res, 'FieldInfo retrieved successfully', results);
+        } catch (error) {
+            logger.error('Error getting fieldInfo by filters:', error);
+            errorResponse(res, 'Error Occurred while fetching fieldInfo by filters : ' + error);
+        }
+    },
 };
 
 module.exports = FieldInfoController;
