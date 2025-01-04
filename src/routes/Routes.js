@@ -19,7 +19,11 @@ const EmailService = require('../services/MailService');
 const ChartsController = require('../services/Dashboards');
 const FertilizersApprovalService = require('../services/FertilizersApprovalService');
 const ComplaintsService = require('../services/ComplaintsService');
-
+const MatrixController = require('../services/RoutingMatrix');
+const MonthlyRatesService = require('../services/MonthlyRatesService');
+const VehicleModelService = require('../services/VehicleModelService');
+const VehicleMakeService = require('../services/VehicleMakeService');
+const VehicleOwnerService = require('../services/VehicleOwnerService');
 
 // demo route list
 router.post('/sample', CustomerController.sampleEndPoint);
@@ -93,8 +97,8 @@ router.delete('/environmentalists/drop/:EnvironmentalZoneID', EnvironmentalZoneC
 
 // main endpoints for vehicle-Routes
 router.get('/vehicles', TokenAuth.authenticateToken('webAdmin'), VehicleController.getAllVehicleMappings);
-router.post('/vehicles/add', TokenAuth.authenticateToken('webAdmin'), VehicleController.addVehicleMappings);
-router.get('/vehicles/:VehicleID', TokenAuth.authenticateToken('webAdmin'), VehicleController.getAllVehicleMappingsByID);
+router.post('/vehicles/add' , VehicleController.addVehicleMappings);
+router.get('/vehicles/:VehicleID', VehicleController.getAllVehicleMappingsByID);
 router.put('/vehicles/update/:VehicleID', TokenAuth.authenticateToken('webAdmin'), VehicleController.updateVehicleMappings);
 router.delete('/vehicles/drop/:VehicleID', TokenAuth.authenticateToken('webAdmin'), VehicleController.deleteVehicleMappings);
 
@@ -114,6 +118,7 @@ router.post('/dailyTeaCollection/fieldSumByDateRangeAndZone', DailyTeaCollection
 
 router.post('/dailyTeaCollection/getCollectionByDateAndRouteID', DailyTeaCollectionController.getCollectionByDateAndRouteID);
 router.post('/dailyTeaCollection/getCollectionSumInSpecificDateAndRouteIDFunc', DailyTeaCollectionController.getCollectionSumInSpecificDateAndRouteIDFunc);
+router.post('/dailyTeaCollection/filter', DailyTeaCollectionController.getTeaCollectionDataFilter);
 
 router.post('/dailyTeaCollection/add', DailyTeaCollectionController.addDailyTeaCollection);
 router.get('/dailyTeaCollection/:DailyTeaCollectionID', DailyTeaCollectionController.getDailyTeaCollectionByID);
@@ -121,6 +126,8 @@ router.put('/dailyTeaCollection/update/:DailyTeaCollectionID', DailyTeaCollectio
 router.delete('/dailyTeaCollection/drop/:DailyTeaCollectionID', DailyTeaCollectionController.deleteDailyTeaCollection);
 
 router.get('/dailyTeaCollection/getByMonthlyCount/:FieldID', DailyTeaCollectionController.getTeaCollectionSUMBy12MonthesFunc);
+router.post('/dailyTeaCollection/report/getReport', DailyTeaCollectionController.getTeaCollectionReportInMonth);
+router.get('/dailyTeaCollection/summery/getAllMonthlyTeaCollectionSummery/:FieldID', DailyTeaCollectionController.getAllMonthlyTeaCollectionSummery);
 
 // main endpoints for fertilizer-Routes
 router.get('/fertilizers', TokenAuth.authenticateToken('all'), FertilizerController.getAllFertilizerInfo);
@@ -137,8 +144,11 @@ router.put('/fieldInfo/update/:FieldID', TokenAuth.authenticateToken('all'), Fie
 router.delete('/fieldInfo/drop/:FieldID', TokenAuth.authenticateToken('all'), FieldInfoController.deleteFieldInfo);
 router.get('/fieldInfo/getByZoneID/:zoneID', TokenAuth.authenticateToken('all'), FieldInfoController.getFieldsByZoneID);
 router.get('/fieldInfo/getByFactoryID/:factoryID', TokenAuth.authenticateToken('all'), FieldInfoController.getFieldsByFactoryID);
-router.get('/fieldInfo/getByRouteID/:routeID', TokenAuth.authenticateToken('all'), FieldInfoController.getFieldsByRouteID);
-router.get('/fieldInfo/getByFieldListByUID/:OwnerID', TokenAuth.authenticateToken('all'), FieldInfoController.getFieldListByUserID);
+// router.get('/fieldInfo/getByRouteID/:routeID', TokenAuth.authenticateToken('all'), FieldInfoController.getFieldsByRouteID);
+router.get('/fieldInfo/getByRouteID/:routeID', FieldInfoController.getFieldsByRouteID);
+router.get('/fieldInfo/getByFieldListByUID/:OwnerID', TokenAuth.authenticateToken('all'), FieldInfoController.getFieldListByUserID); 
+router.get('/fieldInfo/all/mini', TokenAuth.authenticateToken('all'), FieldInfoController.allFieldsWithNameWithID);
+router.post('/fieldInfo/filter', FieldInfoController.getFilteredFieldInfo);
 
 // main endpoints for roadRouting-Routes
 router.get('/roadRouting', RoadRoutingController.gatAllRoadRouting);
@@ -170,5 +180,35 @@ router.delete('/complaints/drop/:ComplaintID', ComplaintsService.deleteComplaint
 // dashboards stats
 router.get('/dashboard/stats', ChartsController.getDashboardStats);
 router.get('/dashboard/collectionSum/:TargetDate', ChartsController.getCollectionSumOfGivenDate);
+
+// routing matrix
+router.post('/routing/routingMatrix', MatrixController.getRoutingMatrix);
+
+// monthly rates
+router.get('/monthlyRates', TokenAuth.authenticateToken('all'), MonthlyRatesService.getMonthlyRates);
+router.post('/monthlyRates/add', TokenAuth.authenticateToken('webAdmin'), MonthlyRatesService.addMonthlyRate);
+router.put('/monthlyRates/update/:id', TokenAuth.authenticateToken('webAdmin'), MonthlyRatesService.updateMonthlyRate);
+router.delete('/monthlyRates/drop/:id', TokenAuth.authenticateToken('webAdmin'), MonthlyRatesService.deleteMonthlyRate);
+router.get('/monthlyRates/getByMonthAndYear/:month/:year', TokenAuth.authenticateToken('all'), MonthlyRatesService.getMonthlyRatesByMonthAndYear);
+
+// vehicle models
+router.get('/vehicleModels', VehicleModelService.getAllVehicleModels);
+router.post('/vehicleModels/add', VehicleModelService.addVehicleModel);
+router.get('/vehicleModels/:ModelId', VehicleModelService.getVehicleModelByID);
+router.put('/vehicleModels/update/:ModelId', VehicleModelService.updateVehicleModel);
+router.delete('/vehicleModels/drop/:ModelId', VehicleModelService.deleteVehicleModel);
+
+// vehicle makes
+router.get('/vehicleMakes', VehicleMakeService.getAllVehicleMakes);
+router.post('/vehicleMakes/add', VehicleMakeService.addVehicleMake);
+router.get('/vehicleMakes/:MakeId', VehicleMakeService.getVehicleMakeByID);
+router.put('/vehicleMakes/update/:MakeId', VehicleMakeService.updateVehicleMake);
+router.delete('/vehicleMakes/drop/:MakeId', VehicleMakeService.deleteVehicleMake);
+
+// vehicle owners
+router.get('/vehicleOwners', VehicleOwnerService.getAllVehicleOwners);
+router.post('/vehicleOwners/add', VehicleOwnerService.addVehicleOwner);
+router.get('/vehicleOwners/ownerBasicDetails', VehicleOwnerService.ownerBasicDetails);
+router.put('/vehicleOwners/update', VehicleOwnerService.updateVehicleOwner);
 
 module.exports = router;
