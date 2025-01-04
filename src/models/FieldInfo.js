@@ -71,7 +71,61 @@ const FieldInfoModel = {
         } catch (error) {
             logger.error('Error getting fieldInfo by UserID:', error);
         }
-    }
+    },
+    allFieldsWithNameWithID: async () => {
+        try {
+            return await query('SELECT FieldID, FieldName FROM fieldinfo');
+        } catch (error) {
+            logger.error('Error getting fieldInfo by UserID:', error);
+        }
+    },
+    getFilteredFieldInfo: async (filters) => {
+        const { fieldID, routeID, factoryID, fieldType } = filters;
+    
+        try {
+            const results = await query(
+                `
+                SELECT 
+                    fieldinfo.FieldID,
+                    fieldinfo.fieldName,
+                    fieldinfo.fieldType AS fieldType,
+                    fieldinfo.baseLocation,
+                    fieldinfo.fieldAddress,
+                    fieldinfo.attitude AS fieldLatitude, 
+                    fieldinfo.longitude AS fieldLongitude,
+                    roadrouting.routingID,
+                    roadrouting.destination AS routeName,
+                    roadrouting.startLongitude AS collectionPointLan,
+                    roadrouting.startLatitude AS collectionPointLat,
+                    factories.factoryID,
+                    factories.factoryName
+                FROM 
+                    teacooperative.fieldinfo
+                INNER JOIN 
+                    roadrouting ON roadrouting.RoutingID = fieldinfo.RouteID
+                INNER JOIN
+                    factories ON factories.factoryID = roadrouting.sourceFactoryID
+                WHERE
+                    (fieldinfo.FieldID = ? OR ? IS NULL) AND
+                    (roadrouting.RoutingID = ? OR ? IS NULL) AND
+                    (factories.factoryID = ? OR ? IS NULL) AND
+                    (fieldinfo.fieldType = ? OR ? IS NULL)
+                ORDER BY
+                    fieldinfo.FieldID;
+                `,
+                [
+                    fieldID, fieldID,
+                    routeID, routeID,
+                    factoryID, factoryID,
+                    fieldType, fieldType
+                ]
+            );
+            return results;
+        } catch (error) {
+            console.error('Error in getFilteredFieldInfo:', error);
+            throw new Error('Failed to fetch filtered field information');
+        }
+    }    
 };
 
 module.exports = FieldInfoModel;
