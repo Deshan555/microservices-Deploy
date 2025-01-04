@@ -263,6 +263,7 @@ const DailyTeaCollectionController = {
     },
     getTeaCollectionReportInMonth: async (req, res) => {
         const {fieldID, targetMonth, targetYear} = req.body;
+        console.log(fieldID, targetMonth, targetYear);
         try {
             const rateData = await MonthlyRatesModel.getMonthlyRatesByMonthAndYear(targetMonth, targetYear).then((data) => {
                 return data[0].rate_per_kg;
@@ -308,7 +309,17 @@ const DailyTeaCollectionController = {
         } catch (error) {
             errorResponse(res, 'Error Occurred while fetching dailyTeaCollection : '+error);
         }
-    }
+    },
+    getTeaCollectionDataFilter: async (req, res) => {
+        // const { factoryId, roadRoutingId, collectorId, collectionDate } = req.body;
+        try {
+            const results = await DailyTeaCollectionModel.getFilteredTeaCollectionData(req.body);
+            if(results.length === 0) return errorResponse(res, 'No dailyTeaCollection found', 404);
+            successResponse(res, 'DailyTeaCollection retrieved successfully', results)
+        } catch (error) {
+            errorResponse(res, 'Error Occurred while fetching dailyTeaCollection : '+error);
+        }
+    },
 };
 
 module.exports = DailyTeaCollectionController;
