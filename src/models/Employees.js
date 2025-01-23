@@ -68,7 +68,14 @@ const EmployeeModel = {
         } catch (error) {
             logger.error('Error getting Collectors with no routing mappings:', error);
         }
-    }
+    },
+    allCollectors: async () => {
+        try {
+            return await query('SELECT * FROM employees WHERE RoleID = 12');
+        } catch (error) {
+            logger.error('Error getting all Collectors:', error);
+        }
+    },
 
 };
 
