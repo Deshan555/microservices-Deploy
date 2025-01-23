@@ -253,6 +253,16 @@ const EmployeeController = {
             console.error('Error getting employee by email:', error);
             errorResponse(res, 'Error Occurred while fetching employee by email : '+error);
         }
+    },
+    allCollectors : async (req, res) => {
+        try {
+            const results = await EmployeeModel.allCollectors();
+            if(results.length === 0) return errorResponse(res, 'No collectors found', 404);
+            successResponse(res, 'Collectors retrieved successfully', results)
+        } catch (error) {
+            console.error('Error getting collectors:', error);
+            errorResponse(res, 'Error Occurred while fetching collectors : '+error);
+        }
     }
 };
 
