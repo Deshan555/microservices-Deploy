@@ -66,6 +66,7 @@ router.delete('/roles/drop/:RoleID', RoleController.deleteRole);
 router.get('/employees', TokenAuth.authenticateToken('webAdmin'), EmployeeController.getAllEmployees);
 router.get('/employees/drivers', TokenAuth.authenticateToken('webAdmin'), EmployeeController.driversWithNoVehicleMappings);
 router.get('/employees/collectors', TokenAuth.authenticateToken('webAdmin'), EmployeeController.collectorsWithOutRoutingMapping);
+router.get('/employees/all/collectors', TokenAuth.authenticateToken('webAdmin'), EmployeeController.allCollectors);
 router.post('/employees/add', TokenAuth.authenticateToken('webAdmin'), EmployeeController.addEmployee);
 router.post('/employees/addBulkEmployees', TokenAuth.authenticateToken('webAdmin'), EmployeeController.addBulkEmployees);
 router.get('/employees/:EmployeeID', TokenAuth.authenticateToken('empProfile'), EmployeeController.getEmployeeByID);
@@ -173,7 +174,7 @@ router.put('/fertilizers/order/reject/:ORDER_ID', FertilizersApprovalService.rej
 
 // complaints services
 router.get('/complaints', ComplaintsService.getAllComplaints);
-router.post('/complaints/add', TokenAuth.authenticateToken('mobileApp'), ComplaintsService.addComplaint);
+router.post('/complaints/add', TokenAuth.authenticateToken('all'), ComplaintsService.addComplaint);
 router.put('/complaints/update/:ComplaintID', ComplaintsService.updateComplaint);
 router.delete('/complaints/drop/:ComplaintID', ComplaintsService.deleteComplaint);
 
