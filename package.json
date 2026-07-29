@@ -4,6 +4,7 @@
   "main": "server.js",
   "scripts": {
     "start": "nodemon ./src/Server.js",
+    "dev": "nodemon ./src/Server.js",
     "auth": "nodemon ./src/AuthServer.js"
   },
   "dependencies": {
