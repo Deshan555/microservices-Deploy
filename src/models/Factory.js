@@ -10,9 +10,12 @@ const FactoryModel = {
             throw error;
         }
     },
-    addFactory: async (FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID) => {
+    addFactory: async (FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID, FactoryLatitude, FactoryLongitude) => {
         try {
-            const results = await query('INSERT INTO factories (FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID) VALUES (?, ?, ?, ?, ?, ?, ?)', [FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID]);
+            const results = await query(
+                'INSERT INTO factories (FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID, FactoryLatitude, FactoryLongitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID, FactoryLatitude, FactoryLongitude],
+            );
             return results;
         } catch (error) {
             throw error;
@@ -26,9 +29,12 @@ const FactoryModel = {
             throw error;
         }
     },
-    updateFactory: async (FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID) => {
+    updateFactory: async (FactoryID, FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID, FactoryLatitude, FactoryLongitude) => {
         try {
-            const results = await query('UPDATE factories SET FactoryName = ?, FactorySize = ?, FactoryMobile = ?, FactoryAddress = ?, FactoryEmail = ?, RegionID = ? WHERE FactoryID = ?', [FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID, FactoryID]);
+            const results = await query(
+                'UPDATE factories SET FactoryName = ?, FactorySize = ?, FactoryMobile = ?, FactoryAddress = ?, FactoryEmail = ?, RegionID = ?, FactoryLatitude = ?, FactoryLongitude = ? WHERE FactoryID = ?',
+                [FactoryName, FactorySize, FactoryMobile, FactoryAddress, FactoryEmail, RegionID, FactoryLatitude, FactoryLongitude, FactoryID],
+            );
             return results;
         } catch (error) {
             throw error;
