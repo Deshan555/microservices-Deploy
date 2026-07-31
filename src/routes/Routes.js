@@ -24,19 +24,44 @@ const MonthlyRatesService = require('../services/MonthlyRatesService');
 const VehicleModelService = require('../services/VehicleModelService');
 const VehicleMakeService = require('../services/VehicleMakeService');
 const VehicleOwnerService = require('../services/VehicleOwnerService');
+const InventoryService = require('../services/InventoryService');
+const AssetService = require('../services/AssetService');
+const TenantService = require('../services/TenantService');
 
 // demo route list
 router.post('/sample', CustomerController.sampleEndPoint);
 router.get('/weather/:city', WeatherController.getWeatherData);
-
-// main endpoints for email-Routes
-router.post('/email/send', EmailService.sendSingleEmail);
 
 // main endpoints for auth-Routes
 router.post('/auth/customer', AuthController.authCustomer);
 router.post('/auth/employee', AuthController.authEmployee);
 router.post('/auth/refreshCustomer', AuthController.newAuthTokenByRefreshTokenCustomer);
 router.post('/auth/refreshEmployee', AuthController.newAuthTokenByRefreshTokenEmployee);
+
+// All remaining application routes require a verified tenant-bound session.
+router.use(TokenAuth.authenticateToken('tenantMember'));
+
+router.post('/auth/switch-tenant', AuthController.switchTenant);
+router.get('/tenants/current', TenantService.current);
+router.get('/tenants/mine', TenantService.mine);
+router.get(
+    '/tenants',
+    TokenAuth.authenticateToken('platformAdmin'),
+    TenantService.list,
+);
+router.post(
+    '/tenants',
+    TokenAuth.authenticateToken('platformAdmin'),
+    TenantService.create,
+);
+router.put(
+    '/tenants/:id',
+    TokenAuth.authenticateToken('platformAdmin'),
+    TenantService.update,
+);
+
+// main endpoints for email-Routes
+router.post('/email/send', EmailService.sendSingleEmail);
 
 // main endpoints for customer-Routes
 router.post('/customers/add', TokenAuth.authenticateToken('webAdmin'), CustomerController.addCustomer);
@@ -45,7 +70,7 @@ router.post('/customers/addBulk', TokenAuth.authenticateToken('webAdmin'), Custo
 router.get('/customers', TokenAuth.authenticateToken('all'), CustomerController.getAllCustomers);
 // router.get('/customers/getById/:CustomerID', TokenAuth.authenticateToken, CustomerController.getCustomerByID);
 router.get('/customers/getById/:CustomerID', TokenAuth.authenticateToken('all'), CustomerController.getCustomerByID);
-router.get('/customers/getByEmail/:CustomerEmail', TokenAuth.authenticateToken('all'), TokenAuth.authenticateToken, CustomerController.getCustomerByEmail);
+router.get('/customers/getByEmail/:CustomerEmail', TokenAuth.authenticateToken('all'), CustomerController.getCustomerByEmail);
 // router.put('/customers/update/:CustomerID', TokenAuth.authenticateToken,CustomerController.updateCustomer);
 router.put('/customers/update/:CustomerID', TokenAuth.authenticateToken('all'), CustomerController.updateCustomer);
 // router.delete('/customers/drop/:CustomerID', TokenAuth.authenticateToken, CustomerController.deleteCustomer);
@@ -211,5 +236,327 @@ router.get('/vehicleOwners', VehicleOwnerService.getAllVehicleOwners);
 router.post('/vehicleOwners/add', VehicleOwnerService.addVehicleOwner);
 router.get('/vehicleOwners/ownerBasicDetails', VehicleOwnerService.ownerBasicDetails);
 router.put('/vehicleOwners/update', VehicleOwnerService.updateVehicleOwner);
+
+// Dynamic inventory, batch traceability, stock ledger, pricing, and QA.
+router.get(
+    '/inventory/dashboard',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.getDashboard,
+);
+
+router.get(
+    '/inventory/product-types',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.listProductTypes,
+);
+router.post(
+    '/inventory/product-types',
+    TokenAuth.authenticateToken('inventoryAdmin'),
+    InventoryService.createProductType,
+);
+router.put(
+    '/inventory/product-types/:id',
+    TokenAuth.authenticateToken('inventoryAdmin'),
+    InventoryService.updateProductType,
+);
+
+router.get(
+    '/inventory/locations',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.listLocations,
+);
+router.post(
+    '/inventory/locations',
+    TokenAuth.authenticateToken('inventoryAdmin'),
+    InventoryService.createLocation,
+);
+router.put(
+    '/inventory/locations/:id',
+    TokenAuth.authenticateToken('inventoryAdmin'),
+    InventoryService.updateLocation,
+);
+
+router.get(
+    '/inventory/skus',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.listSkus,
+);
+router.post(
+    '/inventory/skus',
+    TokenAuth.authenticateToken('inventoryAdmin'),
+    InventoryService.createSku,
+);
+router.get(
+    '/inventory/skus/:id',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.getSku,
+);
+router.put(
+    '/inventory/skus/:id',
+    TokenAuth.authenticateToken('inventoryAdmin'),
+    InventoryService.updateSku,
+);
+router.get(
+    '/inventory/skus/:id/prices',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.listPrices,
+);
+router.post(
+    '/inventory/skus/:id/prices',
+    TokenAuth.authenticateToken('inventoryAdmin'),
+    InventoryService.addPrice,
+);
+
+router.get(
+    '/inventory/stock',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.getStock,
+);
+
+router.get(
+    '/inventory/batches',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.listBatches,
+);
+router.post(
+    '/inventory/batches',
+    TokenAuth.authenticateToken('inventoryOperate'),
+    InventoryService.createBatch,
+);
+router.get(
+    '/inventory/batches/:id',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.getBatch,
+);
+router.post(
+    '/inventory/batches/:id/transitions',
+    TokenAuth.authenticateToken('inventoryOperate'),
+    InventoryService.transitionBatch,
+);
+
+router.get(
+    '/inventory/movements',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.listMovements,
+);
+router.post(
+    '/inventory/movements',
+    TokenAuth.authenticateToken('inventoryOperate'),
+    InventoryService.createMovement,
+);
+router.get(
+    '/inventory/movements/:id',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.getMovement,
+);
+router.post(
+    '/inventory/movements/:id/void',
+    TokenAuth.authenticateToken('inventoryAdmin'),
+    InventoryService.voidMovement,
+);
+
+router.get(
+    '/inventory/inspection-templates',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.listInspectionTemplates,
+);
+router.post(
+    '/inventory/inspection-templates',
+    TokenAuth.authenticateToken('inventoryAdmin'),
+    InventoryService.createInspectionTemplate,
+);
+router.put(
+    '/inventory/inspection-templates/:id',
+    TokenAuth.authenticateToken('inventoryAdmin'),
+    InventoryService.updateInspectionTemplate,
+);
+router.get(
+    '/inventory/inspections',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.listInspections,
+);
+router.post(
+    '/inventory/inspections',
+    TokenAuth.authenticateToken('inventoryOperate'),
+    InventoryService.createInspection,
+);
+router.get(
+    '/inventory/inspections/:id',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.getInspection,
+);
+
+router.get(
+    '/inventory/reservations',
+    TokenAuth.authenticateToken('inventoryRead'),
+    InventoryService.listReservations,
+);
+router.post(
+    '/inventory/reservations',
+    TokenAuth.authenticateToken('inventoryOperate'),
+    InventoryService.createReservation,
+);
+router.put(
+    '/inventory/reservations/:id/status',
+    TokenAuth.authenticateToken('inventoryOperate'),
+    InventoryService.updateReservationStatus,
+);
+
+// Hierarchical assets, maintenance, inspections, and depreciation.
+router.get(
+    '/assets/dashboard',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.getDashboard,
+);
+router.get(
+    '/assets/categories',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.listCategories,
+);
+router.post(
+    '/assets/categories',
+    TokenAuth.authenticateToken('assetAdmin'),
+    AssetService.createCategory,
+);
+router.put(
+    '/assets/categories/:id',
+    TokenAuth.authenticateToken('assetAdmin'),
+    AssetService.updateCategory,
+);
+router.get(
+    '/assets/subcategories',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.listSubcategories,
+);
+router.post(
+    '/assets/subcategories',
+    TokenAuth.authenticateToken('assetAdmin'),
+    AssetService.createSubcategory,
+);
+router.put(
+    '/assets/subcategories/:id',
+    TokenAuth.authenticateToken('assetAdmin'),
+    AssetService.updateSubcategory,
+);
+router.get(
+    '/assets/locations',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.listLocations,
+);
+router.post(
+    '/assets/locations',
+    TokenAuth.authenticateToken('assetAdmin'),
+    AssetService.createLocation,
+);
+router.put(
+    '/assets/locations/:id',
+    TokenAuth.authenticateToken('assetAdmin'),
+    AssetService.updateLocation,
+);
+router.get(
+    '/assets/registry/tree',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.getTree,
+);
+router.get(
+    '/assets/registry',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.listAssets,
+);
+router.post(
+    '/assets/registry',
+    TokenAuth.authenticateToken('assetAdmin'),
+    AssetService.createAsset,
+);
+router.get(
+    '/assets/registry/:id',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.getAsset,
+);
+router.put(
+    '/assets/registry/:id',
+    TokenAuth.authenticateToken('assetAdmin'),
+    AssetService.updateAsset,
+);
+router.post(
+    '/assets/registry/:id/relocate',
+    TokenAuth.authenticateToken('assetOperate'),
+    AssetService.relocateAsset,
+);
+router.post(
+    '/assets/registry/:id/lifecycle',
+    TokenAuth.authenticateToken('assetOperate'),
+    AssetService.updateLifecycle,
+);
+router.get(
+    '/assets/registry/:id/meter-readings',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.listMeterReadings,
+);
+router.post(
+    '/assets/registry/:id/meter-readings',
+    TokenAuth.authenticateToken('assetOperate'),
+    AssetService.addMeterReading,
+);
+router.get(
+    '/assets/registry/:id/documents',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.listDocuments,
+);
+router.post(
+    '/assets/registry/:id/documents',
+    TokenAuth.authenticateToken('assetOperate'),
+    AssetService.addDocument,
+);
+router.get(
+    '/assets/registry/:id/depreciation',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.getDepreciation,
+);
+router.get(
+    '/assets/maintenance-plans',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.listMaintenancePlans,
+);
+router.post(
+    '/assets/maintenance-plans',
+    TokenAuth.authenticateToken('assetAdmin'),
+    AssetService.createMaintenancePlan,
+);
+router.get(
+    '/assets/work-orders',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.listWorkOrders,
+);
+router.post(
+    '/assets/work-orders',
+    TokenAuth.authenticateToken('assetOperate'),
+    AssetService.createWorkOrder,
+);
+router.put(
+    '/assets/work-orders/:id/status',
+    TokenAuth.authenticateToken('assetOperate'),
+    AssetService.updateWorkOrderStatus,
+);
+router.get(
+    '/assets/inspection-templates',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.listInspectionTemplates,
+);
+router.post(
+    '/assets/inspection-templates',
+    TokenAuth.authenticateToken('assetAdmin'),
+    AssetService.createInspectionTemplate,
+);
+router.get(
+    '/assets/inspections',
+    TokenAuth.authenticateToken('assetRead'),
+    AssetService.listInspections,
+);
+router.post(
+    '/assets/inspections',
+    TokenAuth.authenticateToken('assetOperate'),
+    AssetService.createInspection,
+);
 
 module.exports = router;
