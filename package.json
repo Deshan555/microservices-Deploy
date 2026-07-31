@@ -5,7 +5,14 @@
   "scripts": {
     "start": "nodemon ./src/Server.js",
     "dev": "nodemon ./src/Server.js",
-    "auth": "nodemon ./src/AuthServer.js"
+    "auth": "nodemon ./src/AuthServer.js",
+    "test": "node --test test/*.test.js",
+    "bootstrap:super-admin": "node scripts/bootstrapSuperAdmin.js",
+    "seed:users": "node scripts/seedDemoUsers.js",
+    "seed:demo": "node scripts/seedDemoData.js",
+    "migrate:assets": "node scripts/runMigration.js 20260730_asset_management.sql",
+    "migrate:inventory": "node scripts/runMigration.js 20260730_dynamic_inventory.sql",
+    "migrate:tenants": "node scripts/runMigration.js 20260730_multi_tenant_control.sql"
   },
   "dependencies": {
     "apicache": "^1.6.3",
