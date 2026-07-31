@@ -1,204 +1,382 @@
 require('dotenv').config();
-const authModel = require('../models/Auth');
+const CustomerModel = require('../models/Customers');
+const EmployeeModel = require('../models/Employees');
 const JWTTokenModel = require('../models/JWTTokens');
-const customerModel = require('../models/Customers');
-const { hashPassword, comparePassword } = require('../utils/bcrypt');
-const { successResponse, errorResponse } = require('../utils/responseUtils');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('../utils/bcrypt');
-const { generateAccessToken, generateRefreshToken } = require('../security/TokenGen');
+const RoleModel = require('../models/Roles');
+const TenantModel = require('../models/Tenant');
+const { withTenantContext } = require('../config/database');
 const SignModel = require('../security/SignModel');
-const EmployeeModel = require("../models/Employees");
-const RoleModel = require("../models/Roles");
+const {
+    generateAccessToken,
+    generateRefreshToken,
+    verifyToken,
+} = require('../security/TokenGen');
+const { signDataFromDecoded } = require('../security/TokenAuth');
+const { comparePassword } = require('../utils/bcrypt');
+const {
+    successResponse,
+    errorResponse,
+} = require('../utils/responseUtils');
+
+function applicationError(message, status = 400) {
+    const error = new Error(message);
+    error.status = status;
+    return error;
+}
+
+function publicTenant(tenant) {
+    return {
+        id: Number(tenant.id),
+        slug: tenant.slug,
+        name: tenant.name,
+        status: tenant.status,
+        settings: tenant.settings || {},
+        branding: tenant.branding || {},
+    };
+}
+
+async function resolveLoginTenant(req, principalType) {
+    const requestedSlug = String(
+        req.body.tenantSlug
+            || req.headers['x-tenant-slug']
+            || '',
+    ).trim().toLowerCase();
+    const email = String(
+        principalType === 'CUSTOMER'
+            ? req.body.customerEmail || ''
+            : req.body.email || '',
+    ).trim().toLowerCase();
+    const memberships = requestedSlug || !email
+        ? []
+        : await TenantModel.listMemberships(email, principalType);
+    const defaultSlug = String(
+        process.env.DEFAULT_TENANT_SLUG || '',
+    ).trim().toLowerCase();
+    const membership = memberships.find(
+        (item) => item.slug === defaultSlug,
+    ) || memberships[0];
+    const tenant = requestedSlug
+        ? await TenantModel.getBySlug(requestedSlug)
+        : membership
+            ? await TenantModel.getById(membership.id)
+            : defaultSlug
+                ? await TenantModel.getBySlug(defaultSlug)
+                : null;
+
+    if (requestedSlug && !tenant) {
+        throw applicationError(
+            'Tenant workspace was not found or is suspended.',
+            404,
+        );
+    }
+    if (!tenant) {
+        throw applicationError(
+            'This account is not assigned to an active tenant.',
+            403,
+        );
+    }
+    return tenant;
+}
+
+async function employeeRole(employee) {
+    const roles = await RoleModel.getRoleByID(employee.RoleID);
+    if (!roles?.length) {
+        throw applicationError('The employee role is not configured.', 403);
+    }
+    return roles[0].RoleName;
+}
+
+function identityFromAccount(principalType, account, roleName) {
+    if (principalType === 'CUSTOMER') {
+        return {
+            email: account.CustomerEmail,
+            id: account.CustomerID,
+            name: account.CustomerName,
+            password: account.Password,
+            roleName: 'ROLE.CUSTOMER',
+        };
+    }
+    return {
+        email: account.Email,
+        id: account.EmployeeID,
+        name: account.EmployeeName,
+        password: account.Password,
+        roleName,
+    };
+}
+
+async function issueSession({ account, principalType, roleName, tenant }) {
+    const identity = identityFromAccount(
+        principalType,
+        account,
+        roleName,
+    );
+    const signData = new SignModel(
+        identity.email,
+        identity.id,
+        identity.roleName,
+        new Date(),
+        identity.name,
+        tenant,
+        principalType,
+    );
+
+    if (principalType === 'CUSTOMER') {
+        await JWTTokenModel.deleteTokenCustomerByRefreshToken(identity.id);
+    } else {
+        await JWTTokenModel.deleteTokenEmployeeByRefreshToken(identity.id);
+    }
+
+    const accessToken = await generateAccessToken({ signData });
+    const refreshToken = await generateRefreshToken({ signData });
+    const tokenResult =
+        principalType === 'CUSTOMER'
+            ? await JWTTokenModel.pushaddTokenCustomer(
+                accessToken,
+                refreshToken,
+                identity.id,
+            )
+            : await JWTTokenModel.pushTokenEmployee(
+                accessToken,
+                refreshToken,
+                identity.id,
+            );
+    if (!tokenResult?.affectedRows) {
+        throw applicationError('Could not create the authenticated session.', 500);
+    }
+
+    await TenantModel.upsertMembership({
+        tenantId: tenant.id,
+        principalType,
+        principalId: identity.id,
+        email: identity.email,
+        roleName: identity.roleName,
+    });
+    const tenants = await TenantModel.listMemberships(
+        identity.email,
+        principalType,
+    );
+    const authenticatedTime = Date.now();
+    const response = {
+        accessToken,
+        refreshToken,
+        accessTokenExpireDate: new Date(
+            authenticatedTime + 3 * 24 * 60 * 60 * 1000,
+        ),
+        refreshTokenExpireDate: new Date(
+            authenticatedTime + 7 * 24 * 60 * 60 * 1000,
+        ),
+        userRole: identity.roleName,
+        tenant: publicTenant(tenant),
+        tenants: tenants.map(publicTenant),
+        principalType,
+    };
+
+    if (principalType === 'CUSTOMER') {
+        return {
+            ...response,
+            customerName: identity.name,
+            customerEmail: identity.email,
+            customerID: identity.id,
+        };
+    }
+    return {
+        ...response,
+        authEmplyeeID: identity.id,
+        employeeNameRegistered: identity.name,
+        employeeEmail: identity.email,
+    };
+}
+
+async function findAccount(principalType, email) {
+    const rows =
+        principalType === 'CUSTOMER'
+            ? await CustomerModel.getCustomerByEmail(email)
+            : await EmployeeModel.getEmployeeByEmail(email);
+    if (!rows?.length) {
+        throw applicationError(
+            `No ${principalType.toLowerCase()} account exists in this tenant.`,
+            404,
+        );
+    }
+    return rows[0];
+}
+
+async function refreshForPrincipal(req, res, principalType) {
+    try {
+        const { token, userID } = req.body;
+        if (!token || !userID) {
+            throw applicationError('Refresh token and user ID are required.');
+        }
+        const decoded = await verifyToken(
+            token,
+            process.env.ACCESS_TOKEN_REFRESH,
+        );
+        const signData = signDataFromDecoded(decoded);
+        if (
+            !signData
+            || signData.principalType !== principalType
+            || String(signData.userId) !== String(userID)
+        ) {
+            throw applicationError('Refresh token identity is invalid.', 401);
+        }
+        const tenant = await TenantModel.getById(signData.tenantId);
+        if (!tenant || tenant.slug !== signData.tenantSlug) {
+            throw applicationError('Tenant is unavailable or suspended.', 403);
+        }
+
+        const data = await withTenantContext(tenant, async () => {
+            const stored =
+                principalType === 'CUSTOMER'
+                    ? await JWTTokenModel.getTokenCustomerByRefreshToken(
+                        token,
+                        userID,
+                    )
+                    : await JWTTokenModel.getTokenEmployeeByRefreshToken(
+                        token,
+                        userID,
+                    );
+            if (!stored?.length) {
+                throw applicationError('Refresh token has been revoked.', 401);
+            }
+            const accounts =
+                principalType === 'CUSTOMER'
+                    ? await CustomerModel.getCustomerByID(userID)
+                    : await EmployeeModel.getEmployeeByID(userID);
+            if (!accounts?.length) {
+                throw applicationError('Account was not found.', 404);
+            }
+            const roleName =
+                principalType === 'CUSTOMER'
+                    ? 'ROLE.CUSTOMER'
+                    : await employeeRole(accounts[0]);
+            return issueSession({
+                account: accounts[0],
+                principalType,
+                roleName,
+                tenant,
+            });
+        });
+        successResponse(res, 'Session refreshed successfully', data);
+    } catch (error) {
+        errorResponse(
+            res,
+            error.message || 'Could not refresh the session.',
+            error.status || 401,
+        );
+    }
+}
 
 const AuthControl = {
     authCustomer: async (req, res) => {
-        const {customerEmail, password} = req.body;
         try {
-            const results = await customerModel.getCustomerByEmail(customerEmail);
-            console.log(results);
-            let passwordFromDataBase = '';
-            if(results.length === 0)
-                return errorResponse(res, 'Can Not Find Customer With Given Email Address', 404);
-            else
-                passwordFromDataBase = results[0].Password;
-                const passwordMatch = await bcrypt.comparePassword(password, passwordFromDataBase);
-                if(passwordMatch === false)
-                    return errorResponse(res, 'Invalid Credentials, Wrong Password', 401);
-                else{
-                    const signData = new SignModel(
-                        results[0].CustomerEmail,
-                        results[0].CustomerID,
-                        'ROLE.CUSTOMER',
-                        new Date(),
-                        results[0].CustomerName
-                    );
-                    const deleteToken = await JWTTokenModel.deleteTokenCustomerByRefreshToken(results[0].CustomerID);
-                    console.log('Delete Token : '+deleteToken);
-                    const authenticatedTime = new Date();
-                    const accessToken = await generateAccessToken({ signData });
-                    const refreshToken = await generateRefreshToken({ signData });
-                    const accessTokenExpireDate = new Date(authenticatedTime.getTime() + 3 * 24 * 60 * 60 * 1000);
-                    const refreshTokenExpireDate = new Date(authenticatedTime.getTime() + 7 * 24 * 60 * 60 * 1000);
-                    const pushTokens = await JWTTokenModel.pushaddTokenCustomer(accessToken, refreshToken, results[0].CustomerID);
-
-                    const customerName = results[0].CustomerName;
-                    const customerEmail = results[0].CustomerEmail;
-                    const customerID = results[0].CustomerID;
-                    const userRole = 'ROLE.CUSTOMER';
-
-                    if(pushTokens.affectedRows === 0) {
-                        return errorResponse(res, 'Error Occurred while generating access token : ' + err);
-                    }else {
-                        successResponse(res, 'Customer authenticated successfully', {
-                            accessToken, 
-                            refreshToken,
-                            accessTokenExpireDate,
-                            refreshTokenExpireDate,
-                            customerName,
-                            customerEmail,
-                            customerID,
-                            userRole
-                        });  
-                    }
-                }
-        } catch (error) {
-            errorResponse(res, 'Error Occurred while authenticating customer : '+error);
-        }
-    },
-    newAuthTokenByRefreshTokenCustomer: async (req, res) => {
-        const { token, userID } = req.body;
-        try {
-            const results = await JWTTokenModel.getTokenCustomerByRefreshToken(token, userID);
-            if (results.length === 0) {
-                return errorResponse(res, 'Invalid Refresh Token, That Token Not Match With Any Existing Records', 401);
-            }
-            jwt.verify(token, process.env.ACCESS_TOKEN_REFRESH, async (err, user) => {
-                if (err) {
-                    return errorResponse(res, 'Invalid Refresh Token, Or Refresh Token Has Been Changed By Someone', 403);
-                }
-                const getSignData = await customerModel.getCustomerByID(userID);
-                if (getSignData.length === 0) {
-                    return errorResponse(res, 'Can Not Find Customer With Given ID', 404);
-                }
-                const signData = new SignModel(
-                    getSignData[0].CustomerEmail,
-                    getSignData[0].CustomerID,
+            const tenant = await resolveLoginTenant(req, 'CUSTOMER');
+            const data = await withTenantContext(tenant, async () => {
+                const account = await findAccount(
                     'CUSTOMER',
-                    new Date(),
-                    getSignData[0].CustomerName
+                    req.body.customerEmail,
                 );
-                const deleteToken = await JWTTokenModel.deleteTokenCustomerByRefreshToken(userID);
-                const accessToken = await generateAccessToken({ signData });
-                const refreshToken = await generateRefreshToken({ signData });
-                const pushTokens = await JWTTokenModel.pushaddTokenCustomer(accessToken, refreshToken, userID);
-                if (getSignData.length === 0 || pushTokens.affectedRows === 0) {
-                    return errorResponse(res, 'Error Occurred while generating access token');
+                if (!(await comparePassword(req.body.password, account.Password))) {
+                    throw applicationError('Invalid email or password.', 401);
                 }
-                successResponse(res, 'New Access Token Generated Successfully', 
-                { 
-                    accessToken, 
-                    refreshToken 
+                return issueSession({
+                    account,
+                    principalType: 'CUSTOMER',
+                    roleName: 'ROLE.CUSTOMER',
+                    tenant,
                 });
             });
+            successResponse(res, 'Customer authenticated successfully', data);
         } catch (error) {
-            console.error('Error generating new access token:', error);
-            errorResponse(res, 'Error Occurred while generating new access token: ' + error);
+            errorResponse(
+                res,
+                error.message || 'Could not authenticate customer.',
+                error.status || 500,
+            );
         }
     },
+
     authEmployee: async (req, res) => {
-        const {email, password} = req.body;
-        console.log(email, password);
-        try{
-            const results = await EmployeeModel.getEmployeeByEmail(email);
-            let passwordFromDataBase = '';
-            let empRole = '';
-            if(results.length === 0)
-                return errorResponse(res, 'Can Not Find Employee With Given Email Address', 404);
-            else
-                empRole = await RoleModel.getRoleByID(results[0].RoleID);
-                passwordFromDataBase = results[0].Password;
-                const passwordMatch = await bcrypt.comparePassword(password, passwordFromDataBase);
-                if(passwordMatch === false)
-                    return errorResponse(res, 'Invalid Credentials, Wrong Password', 401);
-                else{
-                    const signData = new SignModel(
-                        results[0].Email,
-                        results[0].EmployeeID,
-                        empRole[0].RoleName,
-                        new Date(),
-                        results[0].EmployeeName
-                    );
-                    const deleteToken = await JWTTokenModel.deleteTokenEmployeeByRefreshToken(results[0].EmployeeID);
-                    console.log('Delete Token : '+deleteToken);
-                    const accessToken = await generateAccessToken({ signData });
-                    const refreshToken = await generateRefreshToken({ signData });
-                    const authenticatedTime = new Date();
-                    const accessTokenExpireDate = new Date(authenticatedTime.getTime() + 3 * 24 * 60 * 60 * 1000);
-                    const refreshTokenExpireDate = new Date(authenticatedTime.getTime() + 7 * 24 * 60 * 60 * 1000);
-                    const userRole = empRole[0].RoleName;
-                    const authEmplyeeID = results[0].EmployeeID;
-                    const employeeNameRegistered = results[0].EmployeeName;
-                    const pushTokens = await JWTTokenModel.pushTokenEmployee(accessToken, refreshToken, results[0].EmployeeID);
-                    if(pushTokens.affectedRows === 0) {
-                        return errorResponse(res, 'Error Occurred while generating access token : ' + err);
-                    }else {
-                        successResponse(res, 'Employee authenticated successfully', {
-                            accessToken, 
-                            refreshToken,
-                            accessTokenExpireDate,
-                            refreshTokenExpireDate,
-                            userRole,
-                            authEmplyeeID,
-                            employeeNameRegistered                     
-                        });
-                    }
+        try {
+            const tenant = await resolveLoginTenant(req, 'EMPLOYEE');
+            const data = await withTenantContext(tenant, async () => {
+                const account = await findAccount('EMPLOYEE', req.body.email);
+                if (!(await comparePassword(req.body.password, account.Password))) {
+                    throw applicationError('Invalid email or password.', 401);
                 }
+                return issueSession({
+                    account,
+                    principalType: 'EMPLOYEE',
+                    roleName: await employeeRole(account),
+                    tenant,
+                });
+            });
+            successResponse(res, 'Employee authenticated successfully', data);
         } catch (error) {
-            console.error('Error authenticating employee:', error);
-            errorResponse(res, 'Error Occurred while authenticating employee : '+error);
+            errorResponse(
+                res,
+                error.message || 'Could not authenticate employee.',
+                error.status || 500,
+            );
         }
     },
-    newAuthTokenByRefreshTokenEmployee: async (req, res) => {
-        const { token, userID } = req.body;
-        console.log(userID, token);
+
+    newAuthTokenByRefreshTokenCustomer: (req, res) =>
+        refreshForPrincipal(req, res, 'CUSTOMER'),
+
+    newAuthTokenByRefreshTokenEmployee: (req, res) =>
+        refreshForPrincipal(req, res, 'EMPLOYEE'),
+
+    switchTenant: async (req, res) => {
         try {
-            const results = await JWTTokenModel.getTokenEmployeeByRefreshToken(token, userID);
-            console.log(results)
-            if (results.length === 0) {
-                return errorResponse(res, 'Invalid Refresh Token, That Token Not Match With Any Existing Records', 401);
+            const signData = signDataFromDecoded(req.user);
+            const targetTenantId = Number(req.body.tenantId);
+            if (!Number.isInteger(targetTenantId) || targetTenantId < 1) {
+                throw applicationError('A valid target tenant is required.');
             }
-            jwt.verify(token, process.env.ACCESS_TOKEN_REFRESH, async (err, user) => {
-                if (err) {
-                    return errorResponse(res, 'Invalid Refresh Token, Or Refresh Token Has Been Changed By Someone', 403);
-                }
-                const getSignData = await EmployeeModel.getEmployeeByID(userID);
-                const empRole = await RoleModel.getRoleByID(getSignData[0].RoleID);
-                console.log(getSignData);
-                if (getSignData.length === 0) {
-                    return errorResponse(res, 'Can Not Find Employee With Given ID', 404);
-                }
-                const signData = new SignModel(
-                    getSignData[0].Email,
-                    getSignData[0].EmployeeID,
-                    empRole[0].RoleName,
-                    new Date(),
-                    getSignData[0].EmployeeName
+            const membership = await TenantModel.getMembership(
+                targetTenantId,
+                signData.userEmail,
+                signData.principalType,
+            );
+            if (!membership) {
+                throw applicationError(
+                    'You are not a member of the selected tenant.',
+                    403,
                 );
-                const deleteToken = await JWTTokenModel.deleteTokenEmployeeByRefreshToken(userID);
-                const accessToken = await generateAccessToken({ signData });
-                const refreshToken = await generateRefreshToken({ signData });
-                const pushTokens = await JWTTokenModel.pushTokenEmployee(accessToken, refreshToken, userID);
-                if (getSignData.length === 0 || pushTokens.affectedRows === 0) {
-                    return errorResponse(res, 'Error Occurred while generating access token');
-                }
-                successResponse(res, 'New Access Token Generated Successfully', { accessToken, refreshToken });
+            }
+            const tenant = await TenantModel.getById(targetTenantId);
+            if (!tenant) {
+                throw applicationError(
+                    'The selected tenant is unavailable or suspended.',
+                    403,
+                );
+            }
+            const data = await withTenantContext(tenant, async () => {
+                const account = await findAccount(
+                    signData.principalType,
+                    signData.userEmail,
+                );
+                const roleName =
+                    signData.principalType === 'CUSTOMER'
+                        ? 'ROLE.CUSTOMER'
+                        : await employeeRole(account);
+                return issueSession({
+                    account,
+                    principalType: signData.principalType,
+                    roleName,
+                    tenant,
+                });
             });
+            successResponse(res, 'Tenant switched successfully', data);
         } catch (error) {
-            console.error('Error generating new access token:', error);
-            errorResponse(res, 'Error Occurred while generating new access token: ' + error);
+            errorResponse(
+                res,
+                error.message || 'Could not switch tenant.',
+                error.status || 500,
+            );
         }
-    }
-}
+    },
+};
 
 module.exports = AuthControl;

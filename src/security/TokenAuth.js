@@ -1,46 +1,103 @@
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
-const { successResponse, errorResponse } = require('../utils/responseUtils');
-const {getPolicyByName} = require("./Policies");
-const policy = getPolicyByName('fetchAllData');
+const TenantModel = require('../models/Tenant');
+const { withTenantContext } = require('../config/database');
+const { errorResponse } = require('../utils/responseUtils');
+const { getPolicyByName } = require('./Policies');
 
-function authenticateToken(policy) {
-    return function(req, res, next) {
-        const authHeader = req.headers['authorization'];
-        console.log('authHeader', authHeader);
-        if (!authHeader) {
-            return errorResponse(res, 'Access Token is required, Authorization Header Not Found', 401);
+function signDataFromDecoded(decoded) {
+    return decoded?.user?.signData || decoded?.signData || null;
+}
+
+function validateUserRole(userType, policyName) {
+    const policy = getPolicyByName(policyName);
+    return Boolean(policy && userType && policy.role.includes(userType));
+}
+
+function authenticateToken(policyName = 'tenantMember') {
+    return async function tenantAuthentication(req, res, next) {
+        if (req.user && req.tenant) {
+            const signData = signDataFromDecoded(req.user);
+            if (!validateUserRole(signData?.userType, policyName)) {
+                return errorResponse(
+                    res,
+                    'You do not have permission to perform this action',
+                    403,
+                );
+            }
+            return next();
         }
-        const token = authHeader.split(' ')[1];
-        if (!token) {
-            return errorResponse(res, 'Access Token is required, Token Not Found', 401);
-        } try {
-            const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-            const { userType } = decoded.user.signData;
-            const roleValidator = validateUserROLEbyToken(userType, policy);
-            jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-                if (err)
-                    return errorResponse(res, 'Expired, Invalid Access Token, Or Access Token Has Been Changed By SomeOne', 403);
-                if (!roleValidator) {
-                    return errorResponse(res, 'You do not have permission to perform this action', 403);
-                }
-                req.user = user;
-                next();
-            });
-        } catch (err) {
-            return errorResponse(res, 'Expired, Invalid Access Token, Or Access Token Has Been Changed By SomeOne', 403);
+
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return errorResponse(
+                res,
+                'Access Token is required, Authorization Header Not Found',
+                401,
+            );
+        }
+        const [scheme, token] = authHeader.split(' ');
+        if (scheme?.toLowerCase() !== 'bearer' || !token) {
+            return errorResponse(
+                res,
+                'Authorization Header must contain a Bearer token',
+                401,
+            );
+        }
+
+        try {
+            const decoded = jwt.verify(
+                token,
+                process.env.ACCESS_TOKEN_SECRET,
+            );
+            const signData = signDataFromDecoded(decoded);
+            if (!validateUserRole(signData?.userType, policyName)) {
+                return errorResponse(
+                    res,
+                    'You do not have permission to perform this action',
+                    403,
+                );
+            }
+            if (!signData?.tenantId || !signData?.tenantSlug) {
+                return errorResponse(
+                    res,
+                    'This session has no tenant context. Sign in again.',
+                    401,
+                );
+            }
+
+            const tenant = await TenantModel.getById(signData.tenantId);
+            if (!tenant || tenant.slug !== signData.tenantSlug) {
+                return errorResponse(
+                    res,
+                    'The selected tenant is unavailable or suspended.',
+                    403,
+                );
+            }
+
+            req.user = decoded;
+            req.tenant = {
+                id: tenant.id,
+                slug: tenant.slug,
+                name: tenant.name,
+                status: tenant.status,
+                settings: tenant.settings,
+                branding: tenant.branding,
+            };
+            return withTenantContext(tenant, () => next());
+        } catch (error) {
+            return errorResponse(
+                res,
+                error.name === 'TokenExpiredError'
+                    ? 'Your session has expired. Sign in again.'
+                    : 'The access token or tenant context is invalid.',
+                401,
+            );
         }
     };
 }
 
-function validateUserROLEbyToken(userType, policy) {
-   const rolesList = getPolicyByName(policy);
-   if (rolesList.role.includes(userType)) {
-       return true;
-   }
-    return false;
-}
-
 module.exports = {
-    authenticateToken: authenticateToken,
+    authenticateToken,
+    signDataFromDecoded,
 };
