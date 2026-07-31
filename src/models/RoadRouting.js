@@ -6,7 +6,16 @@ const logger = require("../config/logger");
 const RoadRoutingModel = {
     getAllRoadRouting: async () => {
         try {
-            return await query('SELECT * FROM roadrouting');
+            return await query(`
+                SELECT
+                    r.*,
+                    (
+                        SELECT COUNT(*)
+                        FROM fieldinfo AS f
+                        WHERE f.RouteID = r.RoutingID
+                    ) AS TotalStops
+                FROM roadrouting AS r
+            `);
         } catch (error) {
             logger.error('Error getting roadRouting:', error);
         }
@@ -18,9 +27,9 @@ const RoadRoutingModel = {
             logger.error('Error adding roadRouting:', error);
         }
     },
-    updateRoadRouting: async (RoutingID, SourceFactoryID, Destination, RoundTrip, StartLongitude, StartLatitude, EndLongitude, EndLatitude, TotalStops, Duration, CollectorID) => {
+    updateRoadRouting: async (RoutingID, SourceFactoryID, Destination, RoundTrip, StartLongitude, StartLatitude, EndLongitude, EndLatitude, Duration, CollectorID) => {
         try {
-            return await query('UPDATE roadrouting SET SourceFactoryID = ?, Destination = ?, RoundTrip = ?, StartLongitude = ?, StartLatitude = ?, EndLongitude = ?, EndLatitude = ?, TotalStops = ?, Duration = ?, CollectorID = ? WHERE RoutingID = ?', [SourceFactoryID, Destination, RoundTrip, StartLongitude, StartLatitude, EndLongitude, EndLatitude, TotalStops, Duration, CollectorID, RoutingID]);
+            return await query('UPDATE roadrouting SET SourceFactoryID = ?, Destination = ?, RoundTrip = ?, StartLongitude = ?, StartLatitude = ?, EndLongitude = ?, EndLatitude = ?, Duration = ?, CollectorID = ? WHERE RoutingID = ?', [SourceFactoryID, Destination, RoundTrip, StartLongitude, StartLatitude, EndLongitude, EndLatitude, Duration, CollectorID, RoutingID]);
         } catch (error) {
             logger.error('Error updating roadRouting:', error);
         }
@@ -34,14 +43,24 @@ const RoadRoutingModel = {
     },
     getTotalStopCountByRoutingID: async (RoutingID) => {
         try {
-            return await query('SELECT TotalStops FROM roadrouting WHERE RoutingID = ?', [RoutingID]);
+            return await query('SELECT COUNT(*) AS TotalStops FROM fieldinfo WHERE RouteID = ?', [RoutingID]);
         } catch (error) {
             logger.error('Error getting roadRouting by ID:', error);
         }
     },
     getRoadRoutingByID: async (RoutingID) => {
         try {
-            return await query('SELECT * FROM roadrouting WHERE RoutingID = ?', [RoutingID]);
+            return await query(`
+                SELECT
+                    r.*,
+                    (
+                        SELECT COUNT(*)
+                        FROM fieldinfo AS f
+                        WHERE f.RouteID = r.RoutingID
+                    ) AS TotalStops
+                FROM roadrouting AS r
+                WHERE r.RoutingID = ?
+            `, [RoutingID]);
         } catch (error) {
             logger.error('Error getting roadRouting by ID:', error);
         }
@@ -62,7 +81,26 @@ const RoadRoutingModel = {
     },
     routingWithOutMappings: async () => {
         try {
-            return await query("SELECT r.RoutingID, r.SourceFactoryID, r.Destination, r.RoundTrip, r.StartLongitude, r.StartLatitude, r.EndLongitude, r.EndLatitude, r.TotalStops, r.Duration FROM roadrouting AS r LEFT JOIN vehiclemappings AS v ON r.RoutingID = v.RouteID WHERE v.RouteID IS NULL;");
+            return await query(`
+                SELECT
+                    r.RoutingID,
+                    r.SourceFactoryID,
+                    r.Destination,
+                    r.RoundTrip,
+                    r.StartLongitude,
+                    r.StartLatitude,
+                    r.EndLongitude,
+                    r.EndLatitude,
+                    (
+                        SELECT COUNT(*)
+                        FROM fieldinfo AS f
+                        WHERE f.RouteID = r.RoutingID
+                    ) AS TotalStops,
+                    r.Duration
+                FROM roadrouting AS r
+                LEFT JOIN vehiclemappings AS v ON r.RoutingID = v.RouteID
+                WHERE v.RouteID IS NULL
+            `);
         } catch (error) {
             logger.error('Error getting Routes with no vehicle mappings:', error);
         }
