@@ -57,14 +57,14 @@ const EmployeeModel = {
     },
     driversWithNoVehicleMappings: async () => {
         try {
-            return await query('SELECT e.EmployeeID, e.EmployeeName, e.JoiningDate, e.Email, e.Mobile, e.Password, e.RoleID, e.FactoryID FROM teacooperative.employees AS e LEFT JOIN teacooperative.vehiclemappings AS v ON e.EmployeeID = v.DriverID WHERE e.RoleID = 11 AND v.DriverID IS NULL');
+            return await query('SELECT e.EmployeeID, e.EmployeeName, e.JoiningDate, e.Email, e.Mobile, e.Password, e.RoleID, e.FactoryID FROM employees AS e LEFT JOIN vehiclemappings AS v ON e.EmployeeID = v.DriverID WHERE e.RoleID = 11 AND v.DriverID IS NULL');
         } catch (error) {
             logger.error('Error getting Drivers with no vehicle mappings:', error);
         }
     },
     colleectorsWithOutRoutingMappings : async () => {
         try {
-            return await query('SELECT e.EmployeeID, e.EmployeeName, e.JoiningDate, e.Email, e.Mobile, e.Password, e.RoleID, e.FactoryID FROM teacooperative.employees AS e LEFT JOIN teacooperative.roadrouting AS r ON e.EmployeeID = r.CollectorID WHERE e.RoleID = 12 AND r.CollectorID IS NULL');
+            return await query('SELECT e.EmployeeID, e.EmployeeName, e.JoiningDate, e.Email, e.Mobile, e.Password, e.RoleID, e.FactoryID FROM employees AS e LEFT JOIN roadrouting AS r ON e.EmployeeID = r.CollectorID WHERE e.RoleID = 12 AND r.CollectorID IS NULL');
         } catch (error) {
             logger.error('Error getting Collectors with no routing mappings:', error);
         }

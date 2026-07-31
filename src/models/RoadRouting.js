@@ -62,7 +62,7 @@ const RoadRoutingModel = {
     },
     routingWithOutMappings: async () => {
         try {
-            return await query("SELECT r.RoutingID, r.SourceFactoryID, r.Destination, r.RoundTrip, r.StartLongitude, r.StartLatitude, r.EndLongitude, r.EndLatitude, r.TotalStops, r.Duration FROM teacooperative.roadrouting AS r LEFT JOIN teacooperative.vehiclemappings AS v ON r.RoutingID = v.RouteID WHERE v.RouteID IS NULL;");
+            return await query("SELECT r.RoutingID, r.SourceFactoryID, r.Destination, r.RoundTrip, r.StartLongitude, r.StartLatitude, r.EndLongitude, r.EndLatitude, r.TotalStops, r.Duration FROM roadrouting AS r LEFT JOIN vehiclemappings AS v ON r.RoutingID = v.RouteID WHERE v.RouteID IS NULL;");
         } catch (error) {
             logger.error('Error getting Routes with no vehicle mappings:', error);
         }

@@ -100,7 +100,7 @@ const FieldInfoModel = {
                     factories.factoryID,
                     factories.factoryName
                 FROM 
-                    teacooperative.fieldinfo
+                    fieldinfo
                 INNER JOIN 
                     roadrouting ON roadrouting.RoutingID = fieldinfo.RouteID
                 INNER JOIN

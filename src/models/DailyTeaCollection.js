@@ -146,7 +146,7 @@ getTeaCollectionDataFilter:  async (filters) => {
                 dailyteacollection.Remark,
                 dailyteacollection.CreationType
             FROM 
-                teacooperative.dailyteacollection
+                dailyteacollection
             WHERE 
                 (1 = 1)
         `;
@@ -167,7 +167,7 @@ getTeaCollectionDataFilter:  async (filters) => {
             sql += `
                 AND EXISTS (
                     SELECT 1 
-                    FROM teacooperative.fieldinfo
+                    FROM fieldinfo
                     WHERE field.FieldID = ?
                       AND field.RouteID = dailyteacollection.RouteID
                 )

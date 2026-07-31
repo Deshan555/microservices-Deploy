@@ -12,17 +12,51 @@ const FactoryController = {
         }
     },
     addFactory: async (req, res) => {
-        const { FactoryID, FactoryName, FactoryAddress, FactoryMobile, FactoryEmail, FactoryType, FactoryRegistrationDate, FactoryStatus, RegionID } = req.body;
+        const {
+            FactoryID,
+            FactoryName,
+            FactorySize,
+            FactoryMobile,
+            FactoryAddress,
+            FactoryEmail,
+            RegionID,
+        } = req.body;
 
-        if (!FactoryID || !FactoryName || !FactoryAddress || !FactoryMobile || !FactoryEmail || !FactoryType || !FactoryRegistrationDate || !FactoryStatus || !RegionID) {
-            return errorResponse(res, 'FactoryID, FactoryName, FactoryAddress, FactoryMobile, FactoryEmail, FactoryType, FactoryRegistrationDate, FactoryStatus and RegionID are required fields', 400);
+        if (
+            !FactoryID ||
+            !FactoryName ||
+            !FactorySize ||
+            !FactoryMobile ||
+            !FactoryAddress ||
+            !FactoryEmail ||
+            !RegionID
+        ) {
+            return errorResponse(
+                res,
+                'Factory ID, name, size, mobile, address, email and region are required.',
+                400,
+            );
         }
         try {
-            const result = await FactoryModel.addFactory(FactoryID, FactoryName, FactoryAddress, FactoryMobile, FactoryEmail, FactoryType, FactoryRegistrationDate, FactoryStatus, RegionID);
+            const result = await FactoryModel.addFactory(
+                FactoryID,
+                FactoryName,
+                FactorySize,
+                FactoryMobile,
+                FactoryAddress,
+                FactoryEmail,
+                RegionID,
+            );
             successResponse(res, 'Factory added successfully', result);
         } catch (error) {
             console.error('Error adding factory:', error);
-            errorResponse(res, 'Internal Server Error');
+            errorResponse(
+                res,
+                error.code === 'ER_DUP_ENTRY'
+                    ? 'A factory with this ID already exists.'
+                    : 'Factory could not be created.',
+                error.code === 'ER_DUP_ENTRY' ? 409 : 500,
+            );
         }
     },
     getFactoryByID: async (req, res) => {
@@ -38,13 +72,31 @@ const FactoryController = {
     },
     updateFactory: async (req, res) => {
         const { FactoryID } = req.params;
-        const { FactoryName, FactoryAddress, FactoryMobile, FactoryEmail, FactoryType, FactoryRegistrationDate, FactoryStatus, RegionID } = req.body;
+        const {
+            FactoryName,
+            FactorySize,
+            FactoryMobile,
+            FactoryAddress,
+            FactoryEmail,
+            RegionID,
+        } = req.body;
         try {
-            const result = await FactoryModel.updateFactory(FactoryID, FactoryName, FactoryAddress, FactoryMobile, FactoryEmail, FactoryType, FactoryRegistrationDate, FactoryStatus, RegionID);
+            const result = await FactoryModel.updateFactory(
+                FactoryID,
+                FactoryName,
+                FactorySize,
+                FactoryMobile,
+                FactoryAddress,
+                FactoryEmail,
+                RegionID,
+            );
+            if (!result.affectedRows) {
+                return errorResponse(res, 'Factory not found.', 404);
+            }
             successResponse(res, 'Factory updated successfully', result);
         } catch (error) {
             console.error('Error updating factory:', error);
-            errorResponse(res, 'Internal Server Error');
+            errorResponse(res, 'Factory could not be updated.');
         }
     },
     deleteFactory: async (req, res) => {
