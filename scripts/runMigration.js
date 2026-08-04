@@ -13,6 +13,10 @@ const allowedMigrations = new Set([
     '20260731_factory_coordinates.sql',
     '20260802_environmental_zone_polygons.sql',
     '20260804_verified_tea_collection.sql',
+    '20260804_realtime_notifications.sql',
+    '20260804_unique_route_assignments.sql',
+    '20260804_route_geojson.sql',
+    '20260804_openrouteservice_routing.sql',
 ]);
 
 const migrationName = process.argv[2];
