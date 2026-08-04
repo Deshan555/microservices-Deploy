@@ -12,7 +12,7 @@ server.use(logger('dev'));
 
 server.use(cors());
 
-server.use(bodyParser.json());
+server.use(bodyParser.json({ limit: '10mb' }));
 
 server.use(statusMonitor()); // Add this line
 

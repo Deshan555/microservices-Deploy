@@ -141,11 +141,14 @@ router.put('/vehicles/update/:VehicleID', TokenAuth.authenticateToken('webAdmin'
 router.delete('/vehicles/drop/:VehicleID', TokenAuth.authenticateToken('webAdmin'), VehicleController.deleteVehicleMappings);
 
 // main endpoints for dailyTeaCollection-Routes
-router.get('/dailyTeaCollection', DailyTeaCollectionController.getAllDailyTeaCollection);
+router.get('/dailyTeaCollection', TokenAuth.authenticateToken('tenantMember'), DailyTeaCollectionController.getAllDailyTeaCollection);
 router.post('/dailyTeaCollection/admin/add', DailyTeaCollectionController.addDataByAdminSideTeaCollection);
 router.post('/dailyTeaCollection/admin/addBulk', DailyTeaCollectionController.addBulkRecordsImportFromAdmin);
 router.post('/dailyTeaCollection/getDataBetweenTwoDates', DailyTeaCollectionController.getAllDataBetweenTwoDates);
 router.post('/dailyTeaCollection/mobile/add', TokenAuth.authenticateToken('mobileApp'), DailyTeaCollectionController.addDailyTeaCollectionByMobile);
+router.get('/dailyTeaCollection/mobile/context', TokenAuth.authenticateToken('mobileApp'), DailyTeaCollectionController.getVerifiedCollectionContext);
+router.post('/dailyTeaCollection/mobile/verified', TokenAuth.authenticateToken('mobileApp'), DailyTeaCollectionController.addVerifiedDailyTeaCollection);
+router.patch('/dailyTeaCollection/:CollectionID/review', TokenAuth.authenticateToken('collectionSupervisor'), DailyTeaCollectionController.reviewVerifiedDailyTeaCollection);
 router.post('/dailyTeaCollection/dailySum', DailyTeaCollectionController.getSumOfSpecificDate);
 router.post('/dailyTeaCollection/bulkSum', DailyTeaCollectionController.getBulkCollection);
 
@@ -159,7 +162,7 @@ router.post('/dailyTeaCollection/getCollectionSumInSpecificDateAndRouteIDFunc', 
 router.post('/dailyTeaCollection/filter', DailyTeaCollectionController.getTeaCollectionDataFilter);
 
 router.post('/dailyTeaCollection/add', DailyTeaCollectionController.addDailyTeaCollection);
-router.get('/dailyTeaCollection/:DailyTeaCollectionID', DailyTeaCollectionController.getDailyTeaCollectionByID);
+router.get('/dailyTeaCollection/:DailyTeaCollectionID', TokenAuth.authenticateToken('collectionSupervisor'), DailyTeaCollectionController.getDailyTeaCollectionByID);
 router.put('/dailyTeaCollection/update/:DailyTeaCollectionID', DailyTeaCollectionController.updateDailyTeaCollection);
 router.delete('/dailyTeaCollection/drop/:DailyTeaCollectionID', DailyTeaCollectionController.deleteDailyTeaCollection);
 

@@ -70,6 +70,12 @@ const policies = [
         attributes: ['*']
     },
     {
+        policyName: 'collectionSupervisor',
+        role: ['ROLE.SUPER_ADMIN', 'ROLE.ADMIN', 'ROLE.MANAGER', 'ADMIN', 'MANAGER'],
+        action: 'APPROVE_REJECT',
+        attributes: ['dailyTeaCollection.verification']
+    },
+    {
         policyName: 'all',
         role: ['ROLE.SUPER_ADMIN', 'ROLE.ADMIN', 'ROLE.CUSTOMER', 'ROLE.EMPLOYEE', 'ROLE.DRIVER', 'ROLE.COLLECTOR'],
         action: 'READ',
