@@ -9,6 +9,7 @@ const EnvironmentalZoneModel = {
                 ez.ZoneID,
                 ez.ZoneName,
                 ez.BaseLocation,
+                ez.BoundaryPolygon,
                 ez.CreationDate,
                 COUNT(fi.FieldID) AS NumberOfFieldsRegistered
             FROM 
@@ -16,15 +17,15 @@ const EnvironmentalZoneModel = {
             LEFT JOIN 
                 fieldinfo fi ON ez.ZoneID = fi.ZoneID
             GROUP BY 
-                ez.ZoneID, ez.ZoneName, ez.BaseLocation
+                ez.ZoneID, ez.ZoneName, ez.BaseLocation, ez.BoundaryPolygon, ez.CreationDate
             `);
         } catch (error) {
             logger.error('Error getting EnvironmentalZone:', error);
         }
     },
-    addEnvironmentalZone: async (EnvironmentalZoneID, EnvironmentalZoneName, BaseLocation) => {
+    addEnvironmentalZone: async (EnvironmentalZoneID, EnvironmentalZoneName, BaseLocation, BoundaryPolygon) => {
         try {
-            return await query('INSERT INTO environmentalzone (ZoneID, ZoneName, BaseLocation) VALUES (?, ?, ?)', [EnvironmentalZoneID, EnvironmentalZoneName, BaseLocation]);
+            return await query('INSERT INTO environmentalzone (ZoneID, ZoneName, BaseLocation, BoundaryPolygon) VALUES (?, ?, ?, ?)', [EnvironmentalZoneID, EnvironmentalZoneName, BaseLocation, BoundaryPolygon]);
         } catch (error) {
             logger.error('Error adding EnvironmentalZone:', error);
         }
@@ -43,9 +44,9 @@ const EnvironmentalZoneModel = {
             logger.error('Error getting EnvironmentalZone by ID:', error);
         }
     },
-    updateEnvironmentalZone: async (EnvironmentalZoneID, EnvironmentalZoneName, BaseLocation) => {
+    updateEnvironmentalZone: async (EnvironmentalZoneID, EnvironmentalZoneName, BaseLocation, BoundaryPolygon) => {
         try {
-            return await query('UPDATE environmentalzone SET ZoneName = ? , BaseLocation = ? WHERE ZoneID = ?', [EnvironmentalZoneName, BaseLocation, EnvironmentalZoneID]);
+            return await query('UPDATE environmentalzone SET ZoneName = ?, BaseLocation = ?, BoundaryPolygon = ? WHERE ZoneID = ?', [EnvironmentalZoneName, BaseLocation, BoundaryPolygon, EnvironmentalZoneID]);
         } catch (error) {
             logger.error('Error updating EnvironmentalZone:', error);
         }
@@ -60,4 +61,3 @@ const EnvironmentalZoneModel = {
 };
 
 module.exports = EnvironmentalZoneModel;
-

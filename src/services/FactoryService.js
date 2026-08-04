@@ -1,6 +1,14 @@
 const FactoryModel = require('../models/Factory');
 const { successResponse, errorResponse } = require('../utils/responseUtils');
 
+const isCoordinate = (value, minimum, maximum) => {
+    if (value === null || value === undefined || value === '') return false;
+    const coordinate = Number(value);
+    return Number.isFinite(coordinate) &&
+        coordinate >= minimum &&
+        coordinate <= maximum;
+};
+
 const FactoryController = {
     getAllFactories: async (req, res) => {
         try {
@@ -20,6 +28,8 @@ const FactoryController = {
             FactoryAddress,
             FactoryEmail,
             RegionID,
+            FactoryLatitude,
+            FactoryLongitude,
         } = req.body;
 
         if (
@@ -29,11 +39,13 @@ const FactoryController = {
             !FactoryMobile ||
             !FactoryAddress ||
             !FactoryEmail ||
-            !RegionID
+            !RegionID ||
+            !isCoordinate(FactoryLatitude, -90, 90) ||
+            !isCoordinate(FactoryLongitude, -180, 180)
         ) {
             return errorResponse(
                 res,
-                'Factory ID, name, size, mobile, address, email and region are required.',
+                'Factory ID, name, size, mobile, address, email, region, latitude and longitude are required. Latitude must be between -90 and 90, and longitude between -180 and 180.',
                 400,
             );
         }
@@ -46,6 +58,8 @@ const FactoryController = {
                 FactoryAddress,
                 FactoryEmail,
                 RegionID,
+                Number(FactoryLatitude),
+                Number(FactoryLongitude),
             );
             successResponse(res, 'Factory added successfully', result);
         } catch (error) {
@@ -79,7 +93,19 @@ const FactoryController = {
             FactoryAddress,
             FactoryEmail,
             RegionID,
+            FactoryLatitude,
+            FactoryLongitude,
         } = req.body;
+        if (
+            !isCoordinate(FactoryLatitude, -90, 90) ||
+            !isCoordinate(FactoryLongitude, -180, 180)
+        ) {
+            return errorResponse(
+                res,
+                'Factory latitude and longitude are required. Latitude must be between -90 and 90, and longitude between -180 and 180.',
+                400,
+            );
+        }
         try {
             const result = await FactoryModel.updateFactory(
                 FactoryID,
@@ -89,6 +115,8 @@ const FactoryController = {
                 FactoryAddress,
                 FactoryEmail,
                 RegionID,
+                Number(FactoryLatitude),
+                Number(FactoryLongitude),
             );
             if (!result.affectedRows) {
                 return errorResponse(res, 'Factory not found.', 404);
