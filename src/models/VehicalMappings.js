@@ -4,9 +4,15 @@ const logger = require("../config/logger");
 const VehicleMappingsModel = {
     getAllVehicleMappings: async () => {
         try {
-            return await query('SELECT * FROM vehiclemappings');
+            return await query(`
+                SELECT v.*, e.EmployeeName AS DriverName, f.FactoryName 
+                FROM vehiclemappings v 
+                LEFT JOIN employees e ON v.DriverID = e.EmployeeID 
+                LEFT JOIN factories f ON v.FactoryID = f.FactoryID
+            `);
         } catch (error) {
             logger.error('Error getting VehicleMappings:', error);
+            throw error;
         }
     },
     deleteVehicleMappings: async (VehicleID) => {
@@ -14,6 +20,7 @@ const VehicleMappingsModel = {
             return await query('DELETE FROM vehiclemappings WHERE VehicleID = ?', [VehicleID]);
         } catch (error) {
             logger.error('Error deleting VehicleMappings:', error);
+            throw error;
         }
     },
     getVehicleMappingsByID: async (VehicleID) => {
@@ -21,6 +28,7 @@ const VehicleMappingsModel = {
             return await query('SELECT * FROM vehiclemappings WHERE VehicleID = ?', [VehicleID]);
         } catch (error) {
             logger.error('Error getting VehicleMappings by ID:', error);
+            throw error;
         }
     },
     // addVehicleMappings: async (VehicleID, VehicleNumber, VehicleType, VolumeCapacity, WeightCapacity, NumberPlateID, FactoryID, DriverID, RouteID) => {

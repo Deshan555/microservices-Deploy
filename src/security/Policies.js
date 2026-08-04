@@ -100,6 +100,12 @@ const policies = [
         attributes: ['assets.*']
     },
     {
+        policyName: 'reportsRead',
+        role: ['ROLE.SUPER_ADMIN', 'ROLE.ADMIN', 'ROLE.MANAGER', 'ROLE.EMPLOYEE', 'ROLE.COLLECTOR', 'ADMIN', 'MANAGER'],
+        action: 'READ',
+        attributes: ['reports.*']
+    },
+    {
         policyName: 'assetOperate',
         role: ['ROLE.SUPER_ADMIN', 'ROLE.ADMIN', 'ROLE.MANAGER', 'ROLE.EMPLOYEE', 'ROLE.COLLECTOR', 'ADMIN'],
         action: 'CREATE_UPDATE',

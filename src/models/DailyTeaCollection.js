@@ -2,12 +2,102 @@ const { query } = require('../config/database');
 const logger = require('../config/logger');
 
 const DailyTeaCollectionModel = {
-    getAllDailyTeaCollection: async () => {
-        try {
-            return await query('SELECT * FROM dailyteacollection');
-        } catch (error) {
-            throw error;
+    getAllDailyTeaCollection: async ({
+        page,
+        pageSize,
+        RouteID,
+        FieldID,
+        EmployeeID,
+        FactoryID,
+        StartDate,
+        EndDate,
+        CollectionDate,
+        CreationType,
+        search,
+    }) => {
+        const joins = `
+            FROM dailyteacollection AS collection
+            LEFT JOIN fieldinfo AS field
+                ON field.FieldID = collection.FieldID
+            LEFT JOIN roadrouting AS route
+                ON route.RoutingID = collection.RouteID
+            LEFT JOIN employees AS employee
+                ON employee.EmployeeID = collection.EmployeeID
+        `;
+        const conditions = [];
+        const params = [];
+        const addExactFilter = (column, value) => {
+            if (value !== undefined && value !== null && value !== '') {
+                conditions.push(`${column} = ?`);
+                params.push(value);
+            }
+        };
+
+        addExactFilter('collection.RouteID', RouteID);
+        addExactFilter('collection.FieldID', FieldID);
+        addExactFilter('collection.EmployeeID', EmployeeID);
+        addExactFilter('field.FactoryID', FactoryID);
+        addExactFilter('collection.CollectionDate', CollectionDate);
+        addExactFilter('collection.CreationType', CreationType);
+
+        if (StartDate) {
+            conditions.push('collection.CollectionDate >= ?');
+            params.push(StartDate);
         }
+        if (EndDate) {
+            conditions.push('collection.CollectionDate <= ?');
+            params.push(EndDate);
+        }
+        if (search) {
+            const searchValue = `%${search}%`;
+            conditions.push(`(
+                CAST(collection.CollectionID AS CHAR) LIKE ?
+                OR CAST(collection.RouteID AS CHAR) LIKE ?
+                OR CAST(collection.FieldID AS CHAR) LIKE ?
+                OR CAST(collection.EmployeeID AS CHAR) LIKE ?
+                OR route.Destination LIKE ?
+                OR field.FieldName LIKE ?
+                OR employee.EmployeeName LIKE ?
+                OR collection.Remark LIKE ?
+            )`);
+            params.push(
+                searchValue,
+                searchValue,
+                searchValue,
+                searchValue,
+                searchValue,
+                searchValue,
+                searchValue,
+                searchValue,
+            );
+        }
+
+        const where = conditions.length
+            ? `WHERE ${conditions.join(' AND ')}`
+            : '';
+        const offset = (page - 1) * pageSize;
+        const selectSql = `
+            SELECT
+                collection.*,
+                route.Destination AS RouteName,
+                field.FieldName AS FieldName,
+                employee.EmployeeName AS EmployeeName
+            ${joins}
+            ${where}
+            ORDER BY collection.CollectionDate DESC, collection.CollectionID DESC
+            LIMIT ? OFFSET ?
+        `;
+        const countSql = `SELECT COUNT(*) AS total ${joins} ${where}`;
+
+        const [records, countRows] = await Promise.all([
+            query(selectSql, [...params, pageSize, offset]),
+            query(countSql, params),
+        ]);
+
+        return {
+            records,
+            total: Number(countRows[0]?.total || 0),
+        };
     },
     getAllDataBetweenTwoDates: async (startDate, endDate) => {
         try {

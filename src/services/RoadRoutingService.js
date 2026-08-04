@@ -40,10 +40,10 @@ const RoadRoutingController = {
     },
     updateRoadRouting: async (req, res) => {
         const {RoadRoutingID} = req.params;
-        const {SourceFactoryID, Destination, RoundTrip, StartLongitude, StartLatitude, EndLongitude, EndLatitude, TotalStops, Duration, CollectorID} = req.body;
-        console.log(SourceFactoryID, Destination, RoundTrip, StartLongitude, StartLatitude, EndLongitude, EndLatitude, TotalStops, Duration, CollectorID);
+        const {SourceFactoryID, Destination, RoundTrip, StartLongitude, StartLatitude, EndLongitude, EndLatitude, Duration, CollectorID} = req.body;
+        console.log(SourceFactoryID, Destination, RoundTrip, StartLongitude, StartLatitude, EndLongitude, EndLatitude, Duration, CollectorID);
         try {
-            const result = await RoadRoutingModel.updateRoadRouting(RoadRoutingID, SourceFactoryID, Destination, RoundTrip, StartLongitude, StartLatitude, EndLongitude, EndLatitude, TotalStops, Duration, CollectorID);
+            const result = await RoadRoutingModel.updateRoadRouting(RoadRoutingID, SourceFactoryID, Destination, RoundTrip, StartLongitude, StartLatitude, EndLongitude, EndLatitude, Duration, CollectorID);
             successResponse(res, 'RoadRouting updated successfully', result);
         } catch (error) {
             console.error('Error updating roadRouting:', error);

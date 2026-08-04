@@ -233,6 +233,7 @@ const VehicleMappingsController = {
         const {VehicleID} = req.params;
         try {
             const results = await VehicleMappingsModel.getVehicleMappingsByID(VehicleID);
+            if(results.length === 0) return errorResponse(res, 'VehicleMappings not found', 404);
             const ownership = await VehicleOwnersModel.getOwnerByID(results[0].OwnershipID);
             const vehicleMake = await VehicleMake.getMakeByID(results[0].VehicleMakeID);
             const vehicleModel = await VehicleModelModel.getModelByID(results[0].VehicleModelID);
@@ -240,7 +241,6 @@ const VehicleMappingsController = {
             const driver = await EmployeeModel.getEmployeeByID(results[0].DriverID);
             const route = await RouteModel.getRoadRoutingByID(results[0].RouteID);
 
-            if(results.length === 0) return errorResponse(res, 'VehicleMappings not found', 404);
             let response = {
                 results,
                 ownership: ownership,

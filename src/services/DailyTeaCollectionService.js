@@ -8,10 +8,68 @@ const { UUID } = require('sequelize');
 
 const DailyTeaCollectionController = {
     getAllDailyTeaCollection: async (req, res) => {
+        const parsePositiveInteger = (value, fallback) => {
+            if (value === undefined || value === '') return fallback;
+            const parsed = Number(value);
+            return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+        };
+        const page = parsePositiveInteger(req.query.page, 1);
+        const requestedPageSize =
+            req.query.pageSize === undefined
+                ? req.query.limit
+                : req.query.pageSize;
+        const pageSize = parsePositiveInteger(requestedPageSize, 10);
+
+        if (page === null || pageSize === null || pageSize > 100) {
+            return errorResponse(
+                res,
+                'page and pageSize must be positive integers; pageSize cannot exceed 100',
+                400,
+            );
+        }
+
+        const filters = {
+            RouteID: req.query.RouteID ?? req.query.routeId,
+            FieldID: req.query.FieldID ?? req.query.fieldId,
+            EmployeeID: req.query.EmployeeID ?? req.query.employeeId,
+            FactoryID: req.query.FactoryID ?? req.query.factoryId,
+            StartDate: req.query.StartDate ?? req.query.startDate,
+            EndDate: req.query.EndDate ?? req.query.endDate,
+            CollectionDate:
+                req.query.CollectionDate ?? req.query.collectionDate,
+            CreationType:
+                req.query.CreationType ?? req.query.creationType,
+            search: String(req.query.search || '').trim(),
+        };
+
+        if (
+            filters.StartDate &&
+            filters.EndDate &&
+            filters.StartDate > filters.EndDate
+        ) {
+            return errorResponse(
+                res,
+                'StartDate cannot be later than EndDate',
+                400,
+            );
+        }
+
         try {
-            const results = await DailyTeaCollectionModel.getAllDailyTeaCollection();
-            if(results.length === 0) return errorResponse(res, 'No dailyTeaCollection found', 404);
-            successResponse(res, 'DailyTeaCollection retrieved successfully', results)
+            const { records, total } =
+                await DailyTeaCollectionModel.getAllDailyTeaCollection({
+                    page,
+                    pageSize,
+                    ...filters,
+                });
+            successResponse(res, 'DailyTeaCollection retrieved successfully', {
+                records,
+                pagination: {
+                    page,
+                    pageSize,
+                    total,
+                    totalPages: Math.ceil(total / pageSize),
+                },
+            });
         } catch (error) {
             console.error('Error getting dailyTeaCollection:', error);
             errorResponse(res, 'Error Occurred while fetching dailyTeaCollection : '+error);

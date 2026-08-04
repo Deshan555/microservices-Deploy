@@ -27,6 +27,7 @@ const VehicleOwnerService = require('../services/VehicleOwnerService');
 const InventoryService = require('../services/InventoryService');
 const AssetService = require('../services/AssetService');
 const TenantService = require('../services/TenantService');
+const ReportsService = require('../services/ReportsService');
 
 // demo route list
 router.post('/sample', CustomerController.sampleEndPoint);
@@ -59,6 +60,17 @@ router.put(
     TokenAuth.authenticateToken('platformAdmin'),
     TenantService.update,
 );
+
+// Tenant-scoped operational reporting endpoints.
+router.get('/reports/catalog', TokenAuth.authenticateToken('reportsRead'), ReportsService.catalog);
+router.get('/reports/customer-earnings', TokenAuth.authenticateToken('reportsRead'), ReportsService.customerEarnings);
+router.get('/reports/daily-collection', TokenAuth.authenticateToken('reportsRead'), ReportsService.dailyCollection);
+router.get('/reports/field-productivity', TokenAuth.authenticateToken('reportsRead'), ReportsService.fieldProductivity);
+router.get('/reports/route-performance', TokenAuth.authenticateToken('reportsRead'), ReportsService.routePerformance);
+router.get('/reports/monthly-rates', TokenAuth.authenticateToken('reportsRead'), ReportsService.monthlyRates);
+router.get('/reports/fleet-utilization', TokenAuth.authenticateToken('reportsRead'), ReportsService.fleetUtilization);
+router.get('/reports/fertilizer-inventory', TokenAuth.authenticateToken('reportsRead'), ReportsService.fertilizerInventory);
+router.get('/reports/data-quality', TokenAuth.authenticateToken('reportsRead'), ReportsService.dataQuality);
 
 // main endpoints for email-Routes
 router.post('/email/send', EmailService.sendSingleEmail);
@@ -214,6 +226,8 @@ router.post('/routing/routingMatrix', MatrixController.getRoutingMatrix);
 router.get('/monthlyRates', TokenAuth.authenticateToken('all'), MonthlyRatesService.getMonthlyRates);
 router.post('/monthlyRates/add', TokenAuth.authenticateToken('webAdmin'), MonthlyRatesService.addMonthlyRate);
 router.put('/monthlyRates/update/:id', TokenAuth.authenticateToken('webAdmin'), MonthlyRatesService.updateMonthlyRate);
+router.patch('/monthlyRates/by-period/:year/:month', TokenAuth.authenticateToken('webAdmin'), MonthlyRatesService.editMonthlyRateByPeriod);
+router.patch('/monthlyRates/:id', TokenAuth.authenticateToken('webAdmin'), MonthlyRatesService.editMonthlyRateById);
 router.delete('/monthlyRates/drop/:id', TokenAuth.authenticateToken('webAdmin'), MonthlyRatesService.deleteMonthlyRate);
 router.get('/monthlyRates/getByMonthAndYear/:month/:year', TokenAuth.authenticateToken('all'), MonthlyRatesService.getMonthlyRatesByMonthAndYear);
 
