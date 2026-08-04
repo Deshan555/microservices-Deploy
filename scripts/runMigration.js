@@ -12,6 +12,7 @@ const allowedMigrations = new Set([
     '20260730_multi_tenant_control.sql',
     '20260731_factory_coordinates.sql',
     '20260802_environmental_zone_polygons.sql',
+    '20260804_verified_tea_collection.sql',
 ]);
 
 const migrationName = process.argv[2];

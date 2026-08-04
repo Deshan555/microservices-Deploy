@@ -15,6 +15,7 @@
     "migrate:inventory": "node scripts/runMigration.js 20260730_dynamic_inventory.sql",
     "migrate:tenants": "node scripts/runMigration.js 20260730_multi_tenant_control.sql",
     "migrate:factory-coordinates": "node scripts/runMigration.js 20260731_factory_coordinates.sql",
+    "migrate:verified-collections": "node scripts/runMigration.js 20260804_verified_tea_collection.sql",
     "migrate:zone-polygons": "node scripts/runMigration.js 20260802_environmental_zone_polygons.sql"
   },
   "dependencies": {
