@@ -11,6 +11,17 @@ const MonthlyRatesModel = {
             throw error;
         }
     },
+    getMonthlyRateById: async (id) => {
+        try {
+            return await query(
+                `SELECT * FROM tea_factory_rates WHERE id = ? LIMIT 1`,
+                [id],
+            );
+        } catch (error) {
+            logger.error(error);
+            throw error;
+        }
+    },
     addMonthlyRate: async (month, year, rate_per_kg) => {
         try {
             const results = await query(`INSERT INTO tea_factory_rates (month, year, rate_per_kg) VALUES (?, ?, ?)`, [month, year, rate_per_kg]);
