@@ -10,9 +10,12 @@
     "bootstrap:super-admin": "node scripts/bootstrapSuperAdmin.js",
     "seed:users": "node scripts/seedDemoUsers.js",
     "seed:demo": "node scripts/seedDemoData.js",
+    "seed:field-coordinates": "node scripts/seedFieldCoordinates.js",
     "migrate:assets": "node scripts/runMigration.js 20260730_asset_management.sql",
     "migrate:inventory": "node scripts/runMigration.js 20260730_dynamic_inventory.sql",
-    "migrate:tenants": "node scripts/runMigration.js 20260730_multi_tenant_control.sql"
+    "migrate:tenants": "node scripts/runMigration.js 20260730_multi_tenant_control.sql",
+    "migrate:factory-coordinates": "node scripts/runMigration.js 20260731_factory_coordinates.sql",
+    "migrate:zone-polygons": "node scripts/runMigration.js 20260802_environmental_zone_polygons.sql"
   },
   "dependencies": {
     "apicache": "^1.6.3",

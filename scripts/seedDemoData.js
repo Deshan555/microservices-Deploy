@@ -59,6 +59,8 @@ async function seedCore(query, passwordHash) {
             FactoryMobile: '0710000001',
             FactoryAddress: 'Nuwara Eliya, Sri Lanka',
             FactoryEmail: 'factory@leaves.local',
+            FactoryLatitude: 6.9497,
+            FactoryLongitude: 80.7891,
         },
         {
             FactoryID: 2,
@@ -68,6 +70,8 @@ async function seedCore(query, passwordHash) {
             FactoryMobile: '0710000002',
             FactoryAddress: 'Bandarawela, Sri Lanka',
             FactoryEmail: 'uva.factory@leaves.local',
+            FactoryLatitude: 6.8294,
+            FactoryLongitude: 80.9857,
         },
     ], 'FactoryID');
 
@@ -187,16 +191,19 @@ async function seedCore(query, passwordHash) {
             ZoneID: 3001,
             ZoneName: 'Up Country Wet Zone',
             BaseLocation: 'Nuwara Eliya',
+            BoundaryPolygon: JSON.stringify([[6.85, 80.70], [6.85, 80.88], [7.03, 80.91], [7.08, 80.74], [6.95, 80.66]]),
         },
         {
             ZoneID: 3002,
             ZoneName: 'Uva Seasonal Zone',
             BaseLocation: 'Bandarawela',
+            BoundaryPolygon: JSON.stringify([[6.67, 80.88], [6.68, 81.15], [6.92, 81.18], [7.03, 80.99], [6.88, 80.85]]),
         },
         {
             ZoneID: 3003,
             ZoneName: 'Western Mid Country',
             BaseLocation: 'Hatton',
+            BoundaryPolygon: JSON.stringify([[6.77, 80.45], [6.77, 80.68], [7.03, 80.73], [7.13, 80.52], [6.98, 80.42]]),
         },
     ], 'ZoneID');
 
@@ -243,12 +250,14 @@ async function seedCore(query, passwordHash) {
     ], 'RoutingID');
 
     const fields = [
-        [5001, 'Pedro North Field', 4.8, 'HILLSIDE', 'Pedro Estate Road', 'BOP', 'Nuwara Eliya', 1890, 'Red loam', 'North-east slope', '80.7891', '2025-01-15', 4001, 2001, 3001, 1],
-        [5002, 'Kandapola Smallholding', 2.2, 'SMALLHOLDING', 'Kandapola', 'BOPF', 'Kandapola', 1815, 'Loamy', 'Terraced', '80.8158', '2025-03-20', 4001, 2002, 3001, 1],
-        [5003, 'Hill Crest Block A', 12.5, 'ESTATE', 'Ragala', 'FBOP', 'Ragala', 1750, 'Clay loam', 'East slope', '80.8564', '2024-11-08', 4002, 2003, 3001, 1],
-        [5004, 'Welimada Valley Plot', 6.1, 'SMALLHOLDING', 'Welimada', 'OP', 'Welimada', 1420, 'Sandy loam', 'Valley', '80.9072', '2025-06-25', 4003, 2004, 3002, 2],
-        [5005, 'Green Valley Section 3', 18.4, 'COOPERATIVE', 'Haputale', 'PEKOE', 'Haputale', 1530, 'Red yellow podzolic', 'South slope', '80.9597', '2024-09-20', 4003, 2005, 3002, 2],
-        [5006, 'Talawakele Riverside', 3.7, 'SMALLHOLDING', 'Talawakele', 'BOP', 'Talawakele', 1200, 'Alluvial', 'Gentle slope', '80.6847', '2026-01-12', 4002, 2006, 3003, 1],
+        [5001, 'Pedro North Field', 4.8, 'HILLSIDE', 'Pedro Estate Road', 'BOP', 'Nuwara Eliya', 1890, 'Red loam', '6.9568', '80.7891', '2025-01-15', 4001, 2001, 3001, 1],
+        [5007, 'Pedro East Field', 3.6, 'HILLSIDE', 'Pedro Estate Road', 'BOPF', 'Nuwara Eliya', 1860, 'Red loam', '6.9619', '80.7968', '2025-02-12', 4001, 2001, 3001, 1],
+        [5008, 'Pedro Valley Field', 2.9, 'SMALLHOLDING', 'Lovers Leap Road', 'PEKOE', 'Nuwara Eliya', 1785, 'Clay loam', '6.9484', '80.8015', '2025-04-08', 4001, 2001, 3001, 1],
+        [5002, 'Kandapola Smallholding', 2.2, 'SMALLHOLDING', 'Kandapola', 'BOPF', 'Kandapola', 1815, 'Loamy', '6.9951', '80.8158', '2025-03-20', 4001, 2002, 3001, 1],
+        [5003, 'Hill Crest Block A', 12.5, 'ESTATE', 'Ragala', 'FBOP', 'Ragala', 1750, 'Clay loam', '6.9949', '80.8564', '2024-11-08', 4002, 2003, 3001, 1],
+        [5004, 'Welimada Valley Plot', 6.1, 'SMALLHOLDING', 'Welimada', 'OP', 'Welimada', 1420, 'Sandy loam', '6.9019', '80.9072', '2025-06-25', 4003, 2004, 3002, 2],
+        [5005, 'Green Valley Section 3', 18.4, 'COOPERATIVE', 'Haputale', 'PEKOE', 'Haputale', 1530, 'Red yellow podzolic', '6.7658', '80.9597', '2024-09-20', 4003, 2005, 3002, 2],
+        [5006, 'Talawakele Riverside', 3.7, 'SMALLHOLDING', 'Talawakele', 'BOP', 'Talawakele', 1200, 'Alluvial', '6.9371', '80.6847', '2026-01-12', 4002, 2006, 3003, 1],
     ];
     await upsertMany(
         query,

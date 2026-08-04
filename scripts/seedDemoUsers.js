@@ -87,17 +87,21 @@ async function seed() {
         await query(
             `INSERT INTO factories
                 (FactoryID, RegionID, FactoryName, FactorySize,
-                 FactoryMobile, FactoryAddress, FactoryEmail)
+                 FactoryMobile, FactoryAddress, FactoryEmail,
+                 FactoryLatitude, FactoryLongitude)
              VALUES
                 (1, 1, 'Leaves Tea Factory', 'MEDIUM', '0710000001',
-                 'Nuwara Eliya, Sri Lanka', 'factory@leaves.local')
+                 'Nuwara Eliya, Sri Lanka', 'factory@leaves.local',
+                 6.9497000, 80.7891000)
              ON DUPLICATE KEY UPDATE
                 RegionID = VALUES(RegionID),
                 FactoryName = VALUES(FactoryName),
                 FactorySize = VALUES(FactorySize),
                 FactoryMobile = VALUES(FactoryMobile),
                 FactoryAddress = VALUES(FactoryAddress),
-                FactoryEmail = VALUES(FactoryEmail)`,
+                FactoryEmail = VALUES(FactoryEmail),
+                FactoryLatitude = VALUES(FactoryLatitude),
+                FactoryLongitude = VALUES(FactoryLongitude)`,
         );
 
         const roleIds = {};
