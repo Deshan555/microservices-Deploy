@@ -18,6 +18,8 @@ CREATE TABLE Factories
     FactoryMobile  VARCHAR(10)  NOT NULL,
     FactoryAddress VARCHAR(255) NOT NULL,
     FactoryEmail   VARCHAR(255) NOT NULL,
+    FactoryLatitude DECIMAL(10,7) NOT NULL,
+    FactoryLongitude DECIMAL(10,7) NOT NULL,
     RegionID       INT,
     FOREIGN KEY (RegionID) REFERENCES Regions (RegionID)
 );
@@ -113,7 +115,9 @@ CREATE TABLE EnvironmentalZone
 (
     ZoneID      INT PRIMARY KEY,
     ZoneName    VARCHAR(255)   NOT NULL,
-    CreationDate DATE NOT NULL,
+    BaseLocation VARCHAR(255) NOT NULL,
+    BoundaryPolygon LONGTEXT NULL,
+    CreationDate DATE NOT NULL
 );
 
 -- Table for Weather Information

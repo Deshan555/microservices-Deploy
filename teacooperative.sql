@@ -186,6 +186,8 @@ DROP TABLE IF EXISTS `environmentalzone`;
 CREATE TABLE IF NOT EXISTS `environmentalzone` (
   `ZoneID` int NOT NULL,
   `ZoneName` varchar(255) NOT NULL,
+  `BaseLocation` varchar(255) DEFAULT NULL,
+  `BoundaryPolygon` longtext,
   `Temperature` decimal(10,2) NOT NULL,
   `Humidity` decimal(10,2) NOT NULL,
   `Rainfall` decimal(10,2) NOT NULL,
@@ -209,6 +211,8 @@ CREATE TABLE IF NOT EXISTS `factories` (
   `FactoryMobile` varchar(10) NOT NULL,
   `FactoryAddress` varchar(255) NOT NULL,
   `FactoryEmail` varchar(255) NOT NULL,
+  `FactoryLatitude` decimal(10,7) DEFAULT NULL,
+  `FactoryLongitude` decimal(10,7) DEFAULT NULL,
   `RegionID` int DEFAULT NULL,
   PRIMARY KEY (`FactoryID`),
   KEY `RegionID` (`RegionID`)
