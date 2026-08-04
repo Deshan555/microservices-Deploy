@@ -28,6 +28,7 @@ const InventoryService = require('../services/InventoryService');
 const AssetService = require('../services/AssetService');
 const TenantService = require('../services/TenantService');
 const ReportsService = require('../services/ReportsService');
+const RealtimeService = require('../services/RealtimeService');
 
 // demo route list
 router.post('/sample', CustomerController.sampleEndPoint);
@@ -43,6 +44,9 @@ router.post('/auth/refreshEmployee', AuthController.newAuthTokenByRefreshTokenEm
 router.use(TokenAuth.authenticateToken('tenantMember'));
 
 router.post('/auth/switch-tenant', AuthController.switchTenant);
+router.post('/notifications/devices', RealtimeService.registerDevice);
+router.get('/notifications', RealtimeService.listNotifications);
+router.get('/vehicleTracking/live', RealtimeService.listLiveVehicles);
 router.get('/tenants/current', TenantService.current);
 router.get('/tenants/mine', TenantService.mine);
 router.get(
@@ -219,7 +223,7 @@ router.put('/complaints/update/:ComplaintID', ComplaintsService.updateComplaint)
 router.delete('/complaints/drop/:ComplaintID', ComplaintsService.deleteComplaint);
 
 // dashboards stats
-router.get('/dashboard/stats', ChartsController.getDashboardStats);
+router.get('/dashboard/stats', TokenAuth.authenticateToken('tenantMember'), ChartsController.getDashboardStats);
 router.get('/dashboard/collectionSum/:TargetDate', ChartsController.getCollectionSumOfGivenDate);
 
 // routing matrix

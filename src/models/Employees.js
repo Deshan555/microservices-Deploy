@@ -71,7 +71,14 @@ const EmployeeModel = {
     },
     allCollectors: async () => {
         try {
-            return await query('SELECT * FROM employees WHERE RoleID = 12');
+            return await query(`
+                SELECT e.*, r.RoutingID AS AssignedRouteID,
+                       r.Destination AS AssignedRouteName
+                FROM employees AS e
+                LEFT JOIN roadrouting AS r ON r.CollectorID = e.EmployeeID
+                WHERE e.RoleID = 12
+                ORDER BY e.EmployeeName
+            `);
         } catch (error) {
             logger.error('Error getting all Collectors:', error);
         }

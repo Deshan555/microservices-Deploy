@@ -11,6 +11,7 @@ const {
 } = require('../utils/teaCollectionVerification');
 const { logger } = require('../config/logger');
 const { UUID } = require('sequelize');
+const NotificationService = require('./NotificationService');
 
 const DailyTeaCollectionController = {
     getAllDailyTeaCollection: async (req, res) => {
@@ -397,6 +398,22 @@ const DailyTeaCollectionController = {
                     VerificationStatus: verificationStatus,
                 },
             });
+
+            try {
+                await NotificationService.notifyTeaCollectionSynchronized({
+                    CollectionID: collectionID,
+                    CustomerID: Number(growerID),
+                    FieldName: references.field.FieldName,
+                    ActualTeaWeight: Number(actualTeaWeight),
+                    CollectionDate: collectionDate,
+                    VerificationStatus: verificationStatus,
+                });
+            } catch (notificationError) {
+                console.error(
+                    'Collection saved but customer notification creation failed:',
+                    notificationError,
+                );
+            }
 
             successResponse(res, 'Verified tea collection synchronized successfully', {
                 CollectionID: collectionID,

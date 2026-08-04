@@ -31,6 +31,16 @@ const VehicleMappingsModel = {
             throw error;
         }
     },
+    findRouteAssignment: async (RouteID, ExcludedVehicleID = null) => {
+        return query(
+            `SELECT VehicleID, VehicleNumber
+             FROM vehiclemappings
+             WHERE RouteID = ?
+               AND (? IS NULL OR VehicleID <> ?)
+             LIMIT 1`,
+            [RouteID, ExcludedVehicleID, ExcludedVehicleID],
+        );
+    },
     // addVehicleMappings: async (VehicleID, VehicleNumber, VehicleType, VolumeCapacity, WeightCapacity, NumberPlateID, FactoryID, DriverID, RouteID) => {
     //     try {
     //         return await query('INSERT INTO vehiclemappings (VehicleID, VehicleNumber, VehicleType, VolumeCapacity, WeightCapacity, NumberPlateID, FactoryID, DriverID, RouteID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [VehicleID, VehicleNumber, VehicleType, VolumeCapacity, WeightCapacity, NumberPlateID, FactoryID, DriverID, RouteID]);

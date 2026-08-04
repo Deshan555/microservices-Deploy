@@ -142,6 +142,14 @@ const VehicleMappingsController = {
             if (roleValidation[0].RoleName !== 'ROLE.DRIVER') return errorResponse(res, 'That employee is not a driver', 400);
             const roadRouting = await RouteModel.getRoadRoutingByID(RouteID);
             if (roadRouting.length === 0) return errorResponse(res, 'RoadRouting not found', 404);
+            const assignedVehicle = await VehicleMappingsModel.findRouteAssignment(RouteID);
+            if (assignedVehicle.length > 0) {
+                return errorResponse(
+                    res,
+                    `Route ${RouteID} is already assigned to vehicle ${assignedVehicle[0].VehicleNumber || assignedVehicle[0].VehicleID}. A route can only have one vehicle.`,
+                    409,
+                );
+            }
             const vehicleMake = await VehicleMake.getMakeByID(VehicleMakeID);
             if (vehicleMake.length === 0) return errorResponse(res, 'VehicleMake not found', 404);
             const vehicleModel = await VehicleModelModel.getModelByID(VehicleModelID);
@@ -163,6 +171,9 @@ const VehicleMappingsController = {
             successResponse(res, 'Register New VehicleMappings successfully', response);
         } catch (error) {
             logger.error('Error adding vehicleMappings:', error);
+            if (error?.code === 'ER_DUP_ENTRY') {
+                return errorResponse(res, 'This route is already assigned to another vehicle.', 409);
+            }
             errorResponse(res, 'Error Occurred while adding vehicleMappings : ' + error);
         }
     },
@@ -201,6 +212,14 @@ const VehicleMappingsController = {
             if (roleValidation[0].RoleName !== 'ROLE.DRIVER') return errorResponse(res, 'That employee is not a driver', 400);
             const roadRouting = await RouteModel.getRoadRoutingByID(RouteID);
             if (roadRouting.length === 0) return errorResponse(res, 'RoadRouting not found', 404);
+            const assignedVehicle = await VehicleMappingsModel.findRouteAssignment(RouteID, VehicleID);
+            if (assignedVehicle.length > 0) {
+                return errorResponse(
+                    res,
+                    `Route ${RouteID} is already assigned to vehicle ${assignedVehicle[0].VehicleNumber || assignedVehicle[0].VehicleID}. A route can only have one vehicle.`,
+                    409,
+                );
+            }
             const vehicleMake = await VehicleMake.getMakeByID(VehicleMakeID);
             if (vehicleMake.length === 0) return errorResponse(res, 'VehicleMake not found', 404);
             const vehicleModel = await VehicleModelModel.getModelByID(VehicleModelID);
@@ -216,6 +235,9 @@ const VehicleMappingsController = {
             successResponse(res, 'VehicleMappings updated successfully', response);
         } catch (error) {
             logger.error('Error updating vehicleMappings:', error);
+            if (error?.code === 'ER_DUP_ENTRY') {
+                return errorResponse(res, 'This route is already assigned to another vehicle.', 409);
+            }
             errorResponse(res, 'Error Occurred while updating vehicleMappings : ' + error);
         }
     },

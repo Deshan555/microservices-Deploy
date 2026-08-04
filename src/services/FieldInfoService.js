@@ -6,8 +6,39 @@ const ZoneModel = require('../models/EnvironmentalZone');
 const RouteModel = require('../models/RoadRouting');
 const { successResponse, errorResponse } = require('../utils/responseUtils');
 const logger = require('../config/logger');
+const { distanceFromRouteMeters } = require('../utils/routeGeoJSON');
 const cache = new NodeCache({ stdTTL: 300 }); 
 const cacheKey = 'allFieldInfos';
+const FIELD_ROUTE_CORRIDOR_METERS = Number(process.env.FIELD_ROUTE_CORRIDOR_METERS || 2000);
+
+async function validateRouteAssignment(routeID, longitude, latitude, factoryID) {
+    if (!routeID) {
+        const error = new Error('Every field must be assigned to a collection route.');
+        error.status = 400;
+        throw error;
+    }
+    const routes = await RouteModel.getRoadRoutingByID(routeID);
+    if (!routes?.length) {
+        const error = new Error('Collection route not found.');
+        error.status = 404;
+        throw error;
+    }
+    const route = routes[0];
+    if (String(route.SourceFactoryID) !== String(factoryID)) {
+        const error = new Error('The field and collection route must belong to the same factory.');
+        error.status = 400;
+        throw error;
+    }
+    const distance = distanceFromRouteMeters(route.RouteGeoJSON, longitude, latitude);
+    if (distance > FIELD_ROUTE_CORRIDOR_METERS) {
+        const error = new Error(
+            `Field location is ${Math.round(distance)} m from the selected route. It must be within ${FIELD_ROUTE_CORRIDOR_METERS} m of the GeoJSON path.`,
+        );
+        error.status = 400;
+        throw error;
+    }
+    return route;
+}
 
 const FieldInfoController = {
     // getAllFieldInfos: async (req, res) => {
@@ -54,9 +85,12 @@ const FieldInfoController = {
         const FieldID = Math.floor(Math.random() * 1000000000);
         const FieldName = 'Field_'+FieldID;
         const FieldRegistrationDate = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        if (!fieldSize || !fieldType || !fieldAddress || !teaType || !baseLocation || !baseElevation || !soilType || !latitude || !longitude || !ownerID || !zoneID || !factoryID) {
-            return errorResponse(res, 'FieldSize, FieldType, FieldAddress, TeaType, BaseLocation, BaseElevation, SoilType, Attitude, Longitude, OwnerID, ZoneID and FactoryID are required fields', 400);
+        if (!fieldSize || !fieldType || !fieldAddress || !teaType || !baseLocation || !baseElevation || !soilType || latitude == null || longitude == null || !ownerID || !zoneID || !factoryID) {
+            return errorResponse(res, 'FieldSize, FieldType, FieldAddress, TeaType, BaseLocation, BaseElevation, SoilType, latitude, longitude, OwnerID, ZoneID and FactoryID are required fields', 400);
         } try {
+            if (routeID) {
+                await validateRouteAssignment(routeID, longitude, latitude, factoryID);
+            }
             // const roadRouting = await RouteModel.getRoadRoutingByID(routeID);
             // if(roadRouting.length === 0) return errorResponse(res, 'RoadRouting not found', 404);
             // const customer = await CustomerModel.getCustomerByID(ownerID);
@@ -80,7 +114,7 @@ const FieldInfoController = {
             cache.del(cacheKey);
         } catch (error) {
             console.error('Error adding fieldInfo:', error);
-            errorResponse(res, 'Error Occurred while adding fieldInfo : '+error);
+            errorResponse(res, error.message || 'Error occurred while adding fieldInfo', error.status || 500);
         }
     },
     getFieldInfoByID: async (req, res) => {
@@ -121,13 +155,16 @@ const FieldInfoController = {
             if(factory.length === 0) return errorResponse(res, 'Factory not found', 404);
             const environmentalZone = await ZoneModel.getEnvironmentalZoneByID(zoneID);
             if(environmentalZone.length === 0) return errorResponse(res, 'EnvironmentalZone not found', 404);
+            if (routeID) {
+                await validateRouteAssignment(routeID, longitude, attitude, factoryID);
+            }
             const result = await FieldInfoModel.updateFieldInfo(fieldID, fieldSize, fieldType, fieldAddress, teaType, baseLocation, baseElevation, soilType, attitude, longitude, routeID, ownerID, zoneID, factoryID);
             const updatedFieldInfo = await FieldInfoModel.getFieldInfoByID(fieldID);
             cache.del(cacheKey);
             successResponse(res, 'FieldInfo updated successfully', updatedFieldInfo);
         } catch (error) {
             console.error('Error updating fieldInfo:', error);
-            errorResponse(res, 'Error Occurred while updating fieldInfo : '+error);
+            errorResponse(res, error.message || 'Error occurred while updating fieldInfo', error.status || 500);
         }
     },
     deleteFieldInfo: async (req, res) => {
