@@ -1,6 +1,63 @@
 const axios = require('axios');
 require('dotenv').config();
 
+const DEFAULT_UPLOAD_ATTEMPTS = 3;
+const RETRYABLE_NETWORK_CODES = new Set([
+    'ECONNABORTED',
+    'ECONNRESET',
+    'ENETUNREACH',
+    'ETIMEDOUT',
+]);
+
+function sleep(milliseconds) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function uploadAttempts() {
+    const configured = Number(process.env.SUPABASE_STORAGE_UPLOAD_ATTEMPTS);
+    return Number.isInteger(configured) && configured > 0
+        ? Math.min(configured, 5)
+        : DEFAULT_UPLOAD_ATTEMPTS;
+}
+
+function storageErrorDetails(error) {
+    const status = Number(error.response?.status) || null;
+    const data = error.response?.data;
+    const storageCode = data && typeof data === 'object'
+        ? data.code || data.errorCode || data.error
+        : null;
+    const storageMessage = data && typeof data === 'object'
+        ? data.message
+        : typeof data === 'string'
+            ? data
+            : null;
+    return {
+        status,
+        storageCode: storageCode ? String(storageCode) : null,
+        storageMessage: storageMessage ? String(storageMessage).slice(0, 500) : null,
+    };
+}
+
+function isRetryableUploadError(error) {
+    const status = Number(error.response?.status);
+    return status === 429
+        || status === 544
+        || (status >= 500 && status <= 599)
+        || RETRYABLE_NETWORK_CODES.has(error.code);
+}
+
+function finalUploadError(error) {
+    const { status, storageCode, storageMessage } = storageErrorDetails(error);
+    const context = [status, storageCode].filter(Boolean).join(' ');
+    const wrapped = new Error(
+        `Supabase Storage upload failed${context ? ` (${context})` : ''}: ${storageMessage || error.message}`,
+    );
+    wrapped.code = storageCode || 'EVIDENCE_STORAGE_UPLOAD_FAILED';
+    wrapped.statusCode = status;
+    wrapped.cause = error;
+    return wrapped;
+}
+
 function configuration() {
     const config = {
         supabaseUrl: String(process.env.SUPABASE_URL || '').replace(/\/$/, ''),
@@ -61,16 +118,31 @@ async function uploadImage({ key, image, allowedTypes }) {
         encodeURIComponent(config.bucket),
         encodeObjectPath(objectKey),
     ].join('/');
-    await axios.post(url, decoded.body, {
-        headers: {
-            ...headers(config, decoded.contentType),
-            'Cache-Control': 'private, max-age=3600',
-            'x-upsert': 'true',
-        },
-        maxBodyLength: 6 * 1024 * 1024,
-        timeout: 30_000,
-    });
-    return `supabase://${config.bucket}/${objectKey}`;
+    const attempts = uploadAttempts();
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            await axios.post(url, decoded.body, {
+                headers: {
+                    ...headers(config, decoded.contentType),
+                    'Cache-Control': 'private, max-age=3600',
+                    'x-upsert': 'true',
+                },
+                maxBodyLength: 6 * 1024 * 1024,
+                timeout: 30_000,
+            });
+            return `supabase://${config.bucket}/${objectKey}`;
+        } catch (error) {
+            if (attempt >= attempts || !isRetryableUploadError(error)) {
+                throw finalUploadError(error);
+            }
+            const { status, storageCode } = storageErrorDetails(error);
+            console.warn(
+                `Supabase Storage upload attempt ${attempt}/${attempts} failed`
+                + `${status ? ` (${status}${storageCode ? ` ${storageCode}` : ''})` : ''}; retrying.`,
+            );
+            await sleep(500 * (2 ** (attempt - 1)));
+        }
+    }
 }
 
 async function uploadCollectionEvidence({
@@ -86,22 +158,22 @@ async function uploadCollectionEvidence({
         `collector-${Number(collectorId)}`,
         String(submissionId),
     ].join('/');
-    const [photoReference, signatureReference] = await Promise.all([
-        evidencePhoto
-            ? uploadImage({
-                key: `${prefix}/evidence`,
-                image: evidencePhoto,
-                allowedTypes: ['image/jpeg', 'image/jpg', 'image/png'],
-            })
-            : null,
-        growerSignature
-            ? uploadImage({
-                key: `${prefix}/grower-signature`,
-                image: growerSignature,
-                allowedTypes: ['image/png'],
-            })
-            : null,
-    ]);
+    // Upload sequentially to avoid consuming two Storage database connections for
+    // one collection on smaller Supabase projects.
+    const photoReference = evidencePhoto
+        ? await uploadImage({
+            key: `${prefix}/evidence`,
+            image: evidencePhoto,
+            allowedTypes: ['image/jpeg', 'image/jpg', 'image/png'],
+        })
+        : null;
+    const signatureReference = growerSignature
+        ? await uploadImage({
+            key: `${prefix}/grower-signature`,
+            image: growerSignature,
+            allowedTypes: ['image/png'],
+        })
+        : null;
     return { photoReference, signatureReference };
 }
 
