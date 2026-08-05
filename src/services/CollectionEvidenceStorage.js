@@ -62,7 +62,7 @@ function configuration() {
     const config = {
         supabaseUrl: String(process.env.SUPABASE_URL || '').replace(/\/$/, ''),
         serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-        bucket: process.env.SUPABASE_STORAGE_BUCKET || 'collection-evidence',
+        bucket: process.env.SUPABASE_STORAGE_BUCKET || 'leaves',
     };
     const missing = Object.entries(config)
         .filter(([, value]) => !String(value || '').trim())
