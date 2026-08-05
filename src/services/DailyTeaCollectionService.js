@@ -12,6 +12,22 @@ const {
 const { logger } = require('../config/logger');
 const { UUID } = require('sequelize');
 const NotificationService = require('./NotificationService');
+const {
+    createEvidenceDownloadUrl,
+    uploadCollectionEvidence,
+} = require('./CollectionEvidenceStorage');
+
+const supervisorRoles = new Set([
+    'ROLE.SUPER_ADMIN',
+    'ROLE.ADMIN',
+    'ROLE.MANAGER',
+    'ADMIN',
+    'MANAGER',
+]);
+
+function isSupervisor(signData) {
+    return supervisorRoles.has(signData?.userType);
+}
 
 const DailyTeaCollectionController = {
     getAllDailyTeaCollection: async (req, res) => {
@@ -35,10 +51,12 @@ const DailyTeaCollectionController = {
             );
         }
 
+        const signData = signDataFromDecoded(req.user);
         const filters = {
             RouteID: req.query.RouteID ?? req.query.routeId,
             FieldID: req.query.FieldID ?? req.query.fieldId,
             EmployeeID: req.query.EmployeeID ?? req.query.employeeId,
+            CustomerID: undefined,
             FactoryID: req.query.FactoryID ?? req.query.factoryId,
             StartDate: req.query.StartDate ?? req.query.startDate,
             EndDate: req.query.EndDate ?? req.query.endDate,
@@ -50,6 +68,11 @@ const DailyTeaCollectionController = {
                 req.query.VerificationStatus ?? req.query.verificationStatus,
             search: String(req.query.search || '').trim(),
         };
+        if (signData?.principalType === 'CUSTOMER') {
+            filters.CustomerID = Number(signData?.userId);
+        } else if (!isSupervisor(signData)) {
+            filters.EmployeeID = Number(signData?.userId);
+        }
 
         if (
             filters.StartDate &&
@@ -166,14 +189,7 @@ const DailyTeaCollectionController = {
     getVerifiedCollectionContext: async (req, res) => {
         try {
             const signData = signDataFromDecoded(req.user);
-            const supervisorRoles = new Set([
-                'ROLE.SUPER_ADMIN',
-                'ROLE.ADMIN',
-                'ROLE.MANAGER',
-                'ADMIN',
-                'MANAGER',
-            ]);
-            const collectorID = supervisorRoles.has(signData?.userType)
+            const collectorID = isSupervisor(signData)
                 ? null
                 : Number(signData?.userId);
             const context = await DailyTeaCollectionModel.getVerificationContext(
@@ -225,15 +241,13 @@ const DailyTeaCollectionController = {
             || !capturedAt
             || !collectionDate
             || !fieldID
-            || !growerID
-            || !vehicleID
             || teaWeightCollected === undefined
             || waterWeightCollected === undefined
             || actualTeaWeight === undefined
         ) {
             return errorResponse(
                 res,
-                'Submission ID, capture time, collection date, weights, field, grower and vehicle are required.',
+                'Submission ID, capture time, collection date, weights and field are required.',
                 400,
             );
         }
@@ -279,21 +293,33 @@ const DailyTeaCollectionController = {
                 );
             }
 
+            const supervisor = isSupervisor(signData);
+            const assignment = supervisor
+                ? null
+                : await DailyTeaCollectionModel.getCollectorAssignment(
+                    Number(signData?.userId),
+                );
+            if (!supervisor && !assignment) {
+                return errorResponse(res, 'No collection route is assigned to this collector.', 409);
+            }
+            if (!supervisor && !assignment?.VehicleID) {
+                return errorResponse(res, 'The collector route has no assigned vehicle.', 409);
+            }
+            const effectiveVehicleID = supervisor
+                ? Number(vehicleID)
+                : Number(assignment.VehicleID);
+            if (!Number.isInteger(effectiveVehicleID) || effectiveVehicleID <= 0) {
+                return errorResponse(res, 'A valid assigned vehicle is required.', 400);
+            }
+
             const references = await DailyTeaCollectionModel.getVerificationReferences({
                 FieldID: fieldID,
-                VehicleID: vehicleID,
+                VehicleID: effectiveVehicleID,
             });
             if (!references.field) return errorResponse(res, 'Selected field was not found.', 404);
             if (!references.vehicle) return errorResponse(res, 'Selected vehicle was not found.', 404);
-            const supervisorRoles = new Set([
-                'ROLE.SUPER_ADMIN',
-                'ROLE.ADMIN',
-                'ROLE.MANAGER',
-                'ADMIN',
-                'MANAGER',
-            ]);
             if (
-                !supervisorRoles.has(signData?.userType)
+                !supervisor
                 && String(references.field.AssignedCollectorID) !== String(signData?.userId)
             ) {
                 return errorResponse(res, 'The selected field is not assigned to this collector.', 403);
@@ -301,6 +327,24 @@ const DailyTeaCollectionController = {
 
             const flags = [];
             const isConfirmed = (value) => value === true;
+            const effectiveGrowerID = supervisor
+                ? Number(growerID)
+                : Number(references.field.OwnerID);
+            if (!Number.isInteger(effectiveGrowerID) || effectiveGrowerID <= 0) {
+                return errorResponse(
+                    res,
+                    supervisor
+                        ? 'A valid grower is required.'
+                        : 'The selected field has no registered grower.',
+                    409,
+                );
+            }
+            const collectorIsConfirmed = supervisor
+                ? isConfirmed(collectorConfirmed)
+                : true;
+            const vehicleIsConfirmed = supervisor
+                ? isConfirmed(vehicleConfirmed)
+                : true;
             const capturedLatitude = Number(latitude);
             const capturedLongitude = Number(longitude);
             const fieldLatitude = Number(references.field.Attitude);
@@ -328,15 +372,15 @@ const DailyTeaCollectionController = {
             if (Math.abs(Date.now() - parsedCapturedAt.getTime()) > 86_400_000) {
                 flags.push('DEVICE_TIME_SUSPICIOUS');
             }
-            if (String(references.field.OwnerID) !== String(growerID)) {
+            if (String(references.field.OwnerID) !== String(effectiveGrowerID)) {
                 flags.push('GROWER_DOES_NOT_OWN_FIELD');
             }
             if (String(references.vehicle.RouteID) !== String(references.field.RouteID)) {
                 flags.push('VEHICLE_ROUTE_MISMATCH');
             }
-            if (!isConfirmed(collectorConfirmed)) flags.push('COLLECTOR_NOT_CONFIRMED');
+            if (!collectorIsConfirmed) flags.push('COLLECTOR_NOT_CONFIRMED');
             if (!isConfirmed(growerConfirmed)) flags.push('GROWER_NOT_CONFIRMED');
-            if (!isConfirmed(vehicleConfirmed)) flags.push('VEHICLE_NOT_CONFIRMED');
+            if (!vehicleIsConfirmed) flags.push('VEHICLE_NOT_CONFIRMED');
             if (!evidencePhoto) flags.push('PHOTO_EVIDENCE_MISSING');
             if (!growerSignature) flags.push('GROWER_SIGNATURE_MISSING');
 
@@ -362,6 +406,25 @@ const DailyTeaCollectionController = {
             const verificationStatus = riskFlags.length
                 ? 'PENDING_REVIEW'
                 : 'VERIFIED';
+            let storedEvidence;
+            try {
+                storedEvidence = await uploadCollectionEvidence({
+                    tenantId: signData?.tenantId,
+                    collectorId: signData?.userId,
+                    submissionId: clientSubmissionId,
+                    evidencePhoto,
+                    growerSignature,
+                });
+            } catch (storageError) {
+                console.error('Collection evidence upload failed:', storageError.message);
+                return errorResponse(
+                    res,
+                    storageError.code === 'EVIDENCE_STORAGE_NOT_CONFIGURED'
+                        ? storageError.message
+                        : 'Collection evidence could not be uploaded. The offline record will retry.',
+                    503,
+                );
+            }
             await DailyTeaCollectionModel.createVerifiedCollection({
                 collection: {
                     CollectionID: collectionID,
@@ -385,15 +448,15 @@ const DailyTeaCollectionController = {
                     DistanceFromFieldMeters: distance,
                     GeofenceRadiusMeters: radius,
                     GeofencePassed: distance !== null && distance <= radius ? 1 : 0,
-                    CollectorConfirmed: isConfirmed(collectorConfirmed) ? 1 : 0,
+                    CollectorConfirmed: collectorIsConfirmed ? 1 : 0,
                     GrowerConfirmed: isConfirmed(growerConfirmed) ? 1 : 0,
-                    VehicleConfirmed: isConfirmed(vehicleConfirmed) ? 1 : 0,
-                    GrowerID: Number(growerID),
-                    VehicleID: Number(vehicleID),
+                    VehicleConfirmed: vehicleIsConfirmed ? 1 : 0,
+                    GrowerID: effectiveGrowerID,
+                    VehicleID: effectiveVehicleID,
                     DuplicateDetected: duplicate ? 1 : 0,
                     WeightAnomalyDetected: weightFlags.length ? 1 : 0,
-                    EvidencePhoto: evidencePhoto || null,
-                    GrowerSignature: growerSignature || null,
+                    EvidencePhoto: storedEvidence.photoReference,
+                    GrowerSignature: storedEvidence.signatureReference,
                     RiskFlags: riskFlags,
                     VerificationStatus: verificationStatus,
                 },
@@ -402,7 +465,7 @@ const DailyTeaCollectionController = {
             try {
                 await NotificationService.notifyTeaCollectionSynchronized({
                     CollectionID: collectionID,
-                    CustomerID: Number(growerID),
+                    CustomerID: effectiveGrowerID,
                     FieldName: references.field.FieldName,
                     ActualTeaWeight: Number(actualTeaWeight),
                     CollectionDate: collectionDate,
@@ -436,6 +499,35 @@ const DailyTeaCollectionController = {
             }
             console.error('Error adding verified collection:', error);
             errorResponse(res, 'Could not synchronize the verified tea collection.');
+        }
+    },
+    getVerifiedCollectionEvidence: async (req, res) => {
+        try {
+            const signData = signDataFromDecoded(req.user);
+            const verification = await DailyTeaCollectionModel
+                .getVerificationByCollectionID(req.params.CollectionID);
+            if (!verification) return errorResponse(res, 'Collection evidence was not found.', 404);
+            if (
+                !isSupervisor(signData)
+                && (
+                    signData?.principalType !== 'EMPLOYEE'
+                    || String(verification.EmployeeID) !== String(signData?.userId)
+                )
+            ) {
+                return errorResponse(res, 'You cannot access this collection evidence.', 403);
+            }
+            const reference = req.params.kind === 'signature'
+                ? verification.GrowerSignature
+                : verification.EvidencePhoto;
+            if (!reference) return errorResponse(res, 'This evidence image is unavailable.', 404);
+            const url = await createEvidenceDownloadUrl(reference);
+            successResponse(res, 'Collection evidence URL created successfully', {
+                url,
+                expiresInSeconds: 300,
+            });
+        } catch (error) {
+            console.error('Collection evidence retrieval failed:', error.message);
+            errorResponse(res, 'Collection evidence could not be retrieved.', 503);
         }
     },
     reviewVerifiedDailyTeaCollection: async (req, res) => {

@@ -1,4 +1,6 @@
-const { applicationDefault, cert, getApps, initializeApp } = require('firebase-admin/app');
+require('dotenv').config();
+
+const { cert, getApps, initializeApp } = require('firebase-admin/app');
 const { getMessaging } = require('firebase-admin/messaging');
 
 let firebaseApp = null;
@@ -10,13 +12,21 @@ function initializeFirebase() {
         return firebaseApp;
     }
     try {
-        if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-            const serviceAccount = JSON.parse(
-                process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
-            );
-            firebaseApp = initializeApp({ credential: cert(serviceAccount) });
-        } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-            firebaseApp = initializeApp({ credential: applicationDefault() });
+        if (
+            process.env.FIREBASE_PROJECT_ID
+            && process.env.FIREBASE_CLIENT_EMAIL
+            && process.env.FIREBASE_PRIVATE_KEY_BASE64
+        ) {
+            firebaseApp = initializeApp({
+                credential: cert({
+                    projectId: process.env.FIREBASE_PROJECT_ID,
+                    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                    privateKey: Buffer.from(
+                        process.env.FIREBASE_PRIVATE_KEY_BASE64,
+                        'base64',
+                    ).toString('utf8'),
+                }),
+            });
         }
     } catch (error) {
         console.error('Firebase initialization failed:', error.message);

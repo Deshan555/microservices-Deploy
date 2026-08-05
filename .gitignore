@@ -31,6 +31,8 @@ node_modules/.cache/ms-report
 
 # Environment variables file
 .env
+.env.local
+*-firebase-adminsdk-*.json
 
 # IDE specific files
 .vscode/

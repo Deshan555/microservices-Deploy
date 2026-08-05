@@ -8,6 +8,7 @@ const DailyTeaCollectionModel = {
         RouteID,
         FieldID,
         EmployeeID,
+        CustomerID,
         FactoryID,
         StartDate,
         EndDate,
@@ -43,6 +44,7 @@ const DailyTeaCollectionModel = {
         addExactFilter('collection.RouteID', RouteID);
         addExactFilter('collection.FieldID', FieldID);
         addExactFilter('collection.EmployeeID', EmployeeID);
+        addExactFilter('field.OwnerID', CustomerID);
         addExactFilter('field.FactoryID', FactoryID);
         addExactFilter('collection.CollectionDate', CollectionDate);
         addExactFilter('collection.CreationType', CreationType);
@@ -154,14 +156,38 @@ const DailyTeaCollectionModel = {
     },
     getVerificationByCollectionID: async (CollectionID) => {
         const rows = await query(
-            `SELECT verification.*, grower.CustomerName AS GrowerName,
+            `SELECT verification.*, collection.EmployeeID,
+                    grower.CustomerName AS GrowerName,
                     vehicle.VehicleNumber
              FROM tea_collection_verifications verification
+             INNER JOIN dailyteacollection collection
+                ON collection.CollectionID = verification.CollectionID
              LEFT JOIN customers grower ON grower.CustomerID = verification.GrowerID
              LEFT JOIN vehiclemappings vehicle ON vehicle.VehicleID = verification.VehicleID
              WHERE verification.CollectionID = ?
              LIMIT 1`,
             [CollectionID],
+        );
+        return rows[0] || null;
+    },
+    getCollectorAssignment: async (CollectorID) => {
+        const rows = await query(
+            `SELECT route.RoutingID AS RouteID,
+                    route.Destination AS RouteName,
+                    route.SourceFactoryID AS FactoryID,
+                    route.RouteDistanceMeters,
+                    route.RouteDurationSeconds,
+                    route.TotalStops,
+                    vehicle.VehicleID,
+                    vehicle.VehicleNumber,
+                    vehicle.LicensePlateNumber,
+                    factory.FactoryName
+             FROM roadrouting route
+             LEFT JOIN vehiclemappings vehicle ON vehicle.RouteID = route.RoutingID
+             LEFT JOIN factories factory ON factory.FactoryID = route.SourceFactoryID
+             WHERE route.CollectorID = ?
+             LIMIT 1`,
+            [CollectorID],
         );
         return rows[0] || null;
     },
@@ -202,7 +228,10 @@ const DailyTeaCollectionModel = {
                 [CollectorID, CollectorID],
             ),
         ]);
-        return { fields, vehicles };
+        const assignment = CollectorID
+            ? await DailyTeaCollectionModel.getCollectorAssignment(CollectorID)
+            : null;
+        return { fields, vehicles, assignment };
     },
     getVerificationReferences: async ({ FieldID, VehicleID }) => {
         const [fields, vehicles, statistics] = await Promise.all([

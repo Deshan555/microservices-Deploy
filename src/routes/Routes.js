@@ -152,6 +152,7 @@ router.post('/dailyTeaCollection/getDataBetweenTwoDates', DailyTeaCollectionCont
 router.post('/dailyTeaCollection/mobile/add', TokenAuth.authenticateToken('mobileApp'), DailyTeaCollectionController.addDailyTeaCollectionByMobile);
 router.get('/dailyTeaCollection/mobile/context', TokenAuth.authenticateToken('mobileApp'), DailyTeaCollectionController.getVerifiedCollectionContext);
 router.post('/dailyTeaCollection/mobile/verified', TokenAuth.authenticateToken('mobileApp'), DailyTeaCollectionController.addVerifiedDailyTeaCollection);
+router.get('/dailyTeaCollection/:CollectionID/evidence/:kind(evidence|signature)', TokenAuth.authenticateToken('tenantMember'), DailyTeaCollectionController.getVerifiedCollectionEvidence);
 router.patch('/dailyTeaCollection/:CollectionID/review', TokenAuth.authenticateToken('collectionSupervisor'), DailyTeaCollectionController.reviewVerifiedDailyTeaCollection);
 router.post('/dailyTeaCollection/dailySum', DailyTeaCollectionController.getSumOfSpecificDate);
 router.post('/dailyTeaCollection/bulkSum', DailyTeaCollectionController.getBulkCollection);

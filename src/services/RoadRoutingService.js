@@ -7,6 +7,15 @@ const {
     normalizeRouteGeoJSON,
 } = require('../utils/routeGeoJSON');
 const { optimizeCollectionRoute } = require('./OpenRouteService');
+const { signDataFromDecoded } = require('../security/TokenAuth');
+
+const routeSupervisorRoles = new Set([
+    'ROLE.SUPER_ADMIN',
+    'ROLE.ADMIN',
+    'ROLE.MANAGER',
+    'ADMIN',
+    'MANAGER',
+]);
 
 function decorateRoutes(routes, fields) {
     const fieldsByRoute = fields.reduce((groups, field) => {
@@ -221,7 +230,11 @@ const RoadRoutingController = {
         }
     },
     getRoadRoutingByCollector : async (req, res) => {
-        const {CollectorID} = req.params;
+        const signData = signDataFromDecoded(req.user);
+        const requestedCollectorID = req.params.CollectorID;
+        const CollectorID = routeSupervisorRoles.has(signData?.userType)
+            ? requestedCollectorID
+            : signData?.userId;
         try {
             const results = await getDecoratedRoutes(await RoadRoutingModel.getRoadRoutingByCollectorID(CollectorID));
             if (results.length === 0) return errorResponse(res, 'RoadRouting not found', 404);
