@@ -30,9 +30,11 @@ const TenantService = require('../services/TenantService');
 const ReportsService = require('../services/ReportsService');
 const RealtimeService = require('../services/RealtimeService');
 
-// demo route list
-router.post('/sample', CustomerController.sampleEndPoint);
+// weather endpoints
+router.get('/weather', WeatherController.getWeatherData);
+router.get('/v1/weather', WeatherController.getWeatherData);
 router.get('/weather/:city', WeatherController.getWeatherData);
+
 
 // main endpoints for auth-Routes
 router.post('/auth/customer', AuthController.authCustomer);
@@ -139,7 +141,7 @@ router.delete('/environmentalists/drop/:EnvironmentalZoneID', EnvironmentalZoneC
 
 // main endpoints for vehicle-Routes
 router.get('/vehicles', TokenAuth.authenticateToken('webAdmin'), VehicleController.getAllVehicleMappings);
-router.post('/vehicles/add' , VehicleController.addVehicleMappings);
+router.post('/vehicles/add', VehicleController.addVehicleMappings);
 router.get('/vehicles/:VehicleID', VehicleController.getAllVehicleMappingsByID);
 router.put('/vehicles/update/:VehicleID', TokenAuth.authenticateToken('webAdmin'), VehicleController.updateVehicleMappings);
 router.delete('/vehicles/drop/:VehicleID', TokenAuth.authenticateToken('webAdmin'), VehicleController.deleteVehicleMappings);
@@ -192,13 +194,13 @@ router.get('/fieldInfo/getByZoneID/:zoneID', TokenAuth.authenticateToken('all'),
 router.get('/fieldInfo/getByFactoryID/:factoryID', TokenAuth.authenticateToken('all'), FieldInfoController.getFieldsByFactoryID);
 // router.get('/fieldInfo/getByRouteID/:routeID', TokenAuth.authenticateToken('all'), FieldInfoController.getFieldsByRouteID);
 router.get('/fieldInfo/getByRouteID/:routeID', FieldInfoController.getFieldsByRouteID);
-router.get('/fieldInfo/getByFieldListByUID/:OwnerID', TokenAuth.authenticateToken('all'), FieldInfoController.getFieldListByUserID); 
+router.get('/fieldInfo/getByFieldListByUID/:OwnerID', TokenAuth.authenticateToken('all'), FieldInfoController.getFieldListByUserID);
 router.get('/fieldInfo/all/mini', TokenAuth.authenticateToken('all'), FieldInfoController.allFieldsWithNameWithID);
 router.post('/fieldInfo/filter', FieldInfoController.getFilteredFieldInfo);
 
 // main endpoints for roadRouting-Routes
 router.get('/roadRouting', RoadRoutingController.gatAllRoadRouting);
-router.get('/roadRouting/collectors/:CollectorID',  TokenAuth.authenticateToken('mobileApp'), RoadRoutingController.getRoadRoutingByCollector);
+router.get('/roadRouting/collectors/:CollectorID', TokenAuth.authenticateToken('mobileApp'), RoadRoutingController.getRoadRoutingByCollector);
 router.get('/roadRouting/withoutMappings', RoadRoutingController.getRoutingWithOutMappings);
 router.post('/roadRouting/add', RoadRoutingController.addRoadRouting);
 router.get('/roadRouting/:RoadRoutingID', RoadRoutingController.getRoadRoutingByID);
