@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const TenantModel = require('../models/Tenant');
 const RealtimeModel = require('../models/Realtime');
+const LiveVehicleCache = require('../services/LiveVehicleCache');
 const { withTenantContext } = require('../config/database');
 const { signDataFromDecoded } = require('../security/TokenAuth');
 const RealtimeHub = require('./RealtimeHub');
@@ -100,10 +101,22 @@ function createRealtimeServer(httpServer) {
                         IsSupervisor: supervisorRoles.has(identity.userType),
                     });
                     if (!vehicle) return null;
-                    await RealtimeModel.upsertVehicleLocation({
-                        ...location,
-                        ReporterID: Number(identity.userId),
+
+                    // Update in-memory vehicle cache (NO MySQL DB WRITE)
+                    LiveVehicleCache.setVehicleLocation({
+                        vehicleId: location.VehicleID,
+                        tenantId: identity.tenantId,
+                        collectorId: Number(identity.userId),
+                        routeId: vehicle.RouteID,
+                        vehicleNumber: vehicle.VehicleNumber,
+                        latitude: location.Latitude,
+                        longitude: location.Longitude,
+                        speedMetersPerSecond: location.SpeedMetersPerSecond,
+                        headingDegrees: location.HeadingDegrees,
+                        accuracyMeters: location.AccuracyMeters,
+                        capturedAt: location.CapturedAt.toISOString(),
                     });
+
                     const recipients = await RealtimeModel
                         .customerRecipientsForRoute(vehicle.RouteID);
                     return { vehicle, recipients };
