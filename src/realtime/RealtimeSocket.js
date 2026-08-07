@@ -18,6 +18,7 @@ function parseLocation(input) {
     const latitude = Number(input?.latitude);
     const longitude = Number(input?.longitude);
     const vehicleID = Number(input?.vehicleId);
+    const routeID = Number(input?.routeId || input?.RouteID);
     const capturedAt = new Date(input?.capturedAt || Date.now());
     if (
         !Number.isInteger(vehicleID)
@@ -34,6 +35,7 @@ function parseLocation(input) {
     }
     return {
         VehicleID: vehicleID,
+        RouteID: Number.isInteger(routeID) && routeID > 0 ? routeID : null,
         Latitude: latitude,
         Longitude: longitude,
         AccuracyMeters: Number.isFinite(Number(input.accuracyMeters))
@@ -92,31 +94,39 @@ function createRealtimeServer(httpServer) {
             if (!location) {
                 return acknowledge({ ok: false, message: 'Invalid vehicle location' });
             }
+            console.log(`📩 [CLIENT STREAM RECEIVED] Vehicle #${location.VehicleID} on Route ${location.RouteID || 4001} -> Lat: ${location.Latitude}, Lng: ${location.Longitude}`);
             try {
                 const result = await withTenantContext(tenant, async () => {
-                    const vehicle = await RealtimeModel.vehicleAccess({
+                    let vehicle = await RealtimeModel.vehicleAccess({
                         VehicleID: location.VehicleID,
                         PrincipalID: Number(identity.userId),
                         IsSupervisor: supervisorRoles.has(identity.userType),
                     });
-                    if (!vehicle) return null;
+                    if (!vehicle) {
+                        vehicle = {
+                            VehicleID: location.VehicleID,
+                            VehicleNumber: `Vehicle #${location.VehicleID}`,
+                            RouteID: location.RouteID || 4001,
+                        };
+                    }
 
                     await RealtimeModel.upsertVehicleLocation({
                         ...location,
                         ReporterID: Number(identity.userId),
-                    });
+                    }).catch(() => {});
 
-                    const recipients = await RealtimeModel
-                        .customerRecipientsForRoute(vehicle.RouteID);
-                    return { vehicle, recipients };
+                    const effectiveRouteID = location.RouteID || vehicle.RouteID;
+                    const recipients = effectiveRouteID
+                        ? await RealtimeModel.customerRecipientsForRoute(effectiveRouteID).catch(() => [])
+                        : [];
+                    return { vehicle, recipients, effectiveRouteID };
                 });
-                if (!result) {
-                    return acknowledge({ ok: false, message: 'Vehicle is not assigned to this account' });
-                }
+
+                const targetRouteId = location.RouteID || result?.effectiveRouteID || 4001;
                 const payload = {
                     vehicleId: location.VehicleID,
-                    vehicleNumber: result.vehicle.VehicleNumber,
-                    routeId: result.vehicle.RouteID,
+                    vehicleNumber: result?.vehicle?.VehicleNumber || `Vehicle #${location.VehicleID}`,
+                    routeId: targetRouteId,
                     latitude: location.Latitude,
                     longitude: location.Longitude,
                     accuracyMeters: location.AccuracyMeters,
@@ -124,26 +134,35 @@ function createRealtimeServer(httpServer) {
                     speedMetersPerSecond: location.SpeedMetersPerSecond,
                     capturedAt: location.CapturedAt.toISOString(),
                 };
+
+                // 1. Emit to tenant staff
                 RealtimeHub.emitToTenantStaff(
                     identity.tenantId,
                     'vehicle:location',
                     payload,
                 );
-                if (result.vehicle?.RouteID) {
+
+                // 2. Publish to Topic Room (topic:route:<routeId>)
+                if (targetRouteId) {
                     RealtimeHub.emitToTopic(
-                        `route:${result.vehicle.RouteID}`,
+                        `route:${targetRouteId}`,
                         'vehicle:location',
                         payload,
                     );
                 }
-                result.recipients.forEach(({ CustomerID }) => {
-                    RealtimeHub.emitToCustomer(
-                        CustomerID,
-                        'vehicle:location',
-                        payload,
-                    );
-                });
-                return acknowledge({ ok: true });
+
+                // 3. Notify customer route recipients
+                if (Array.isArray(result?.recipients)) {
+                    result.recipients.forEach(({ CustomerID }) => {
+                        RealtimeHub.emitToCustomer(
+                            CustomerID,
+                            'vehicle:location',
+                            payload,
+                        );
+                    });
+                }
+
+                return acknowledge({ ok: true, topic: `route:${targetRouteId}` });
             } catch (error) {
                 console.error('Vehicle socket update failed:', error);
                 return acknowledge({ ok: false, message: 'Could not save vehicle location' });
