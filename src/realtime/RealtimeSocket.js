@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const TenantModel = require('../models/Tenant');
 const RealtimeModel = require('../models/Realtime');
-const LiveVehicleCache = require('../services/LiveVehicleCache');
 const { withTenantContext } = require('../config/database');
 const { signDataFromDecoded } = require('../security/TokenAuth');
 const RealtimeHub = require('./RealtimeHub');
@@ -102,19 +101,9 @@ function createRealtimeServer(httpServer) {
                     });
                     if (!vehicle) return null;
 
-                    // Update in-memory vehicle cache (NO MySQL DB WRITE)
-                    LiveVehicleCache.setVehicleLocation({
-                        vehicleId: location.VehicleID,
-                        tenantId: identity.tenantId,
-                        collectorId: Number(identity.userId),
-                        routeId: vehicle.RouteID,
-                        vehicleNumber: vehicle.VehicleNumber,
-                        latitude: location.Latitude,
-                        longitude: location.Longitude,
-                        speedMetersPerSecond: location.SpeedMetersPerSecond,
-                        headingDegrees: location.HeadingDegrees,
-                        accuracyMeters: location.AccuracyMeters,
-                        capturedAt: location.CapturedAt.toISOString(),
+                    await RealtimeModel.upsertVehicleLocation({
+                        ...location,
+                        ReporterID: Number(identity.userId),
                     });
 
                     const recipients = await RealtimeModel
@@ -140,6 +129,13 @@ function createRealtimeServer(httpServer) {
                     'vehicle:location',
                     payload,
                 );
+                if (result.vehicle?.RouteID) {
+                    RealtimeHub.emitToTopic(
+                        `route:${result.vehicle.RouteID}`,
+                        'vehicle:location',
+                        payload,
+                    );
+                }
                 result.recipients.forEach(({ CustomerID }) => {
                     RealtimeHub.emitToCustomer(
                         CustomerID,
@@ -152,6 +148,33 @@ function createRealtimeServer(httpServer) {
                 console.error('Vehicle socket update failed:', error);
                 return acknowledge({ ok: false, message: 'Could not save vehicle location' });
             }
+        });
+
+        // Topic-wise WebSocket Subscription Handlers
+        socket.on('subscribe', (input, acknowledge = () => {}) => {
+            const topic = String(input?.topic || input || '').trim();
+            if (!topic) {
+                return acknowledge({ ok: false, message: 'Invalid topic specified' });
+            }
+            socket.join(`topic:${topic}`);
+            return acknowledge({
+                ok: true,
+                topic,
+                message: `Subscribed to topic:${topic} successfully`,
+            });
+        });
+
+        socket.on('unsubscribe', (input, acknowledge = () => {}) => {
+            const topic = String(input?.topic || input || '').trim();
+            if (!topic) {
+                return acknowledge({ ok: false, message: 'Invalid topic specified' });
+            }
+            socket.leave(`topic:${topic}`);
+            return acknowledge({
+                ok: true,
+                topic,
+                message: `Unsubscribed from topic:${topic} successfully`,
+            });
         });
     });
 
