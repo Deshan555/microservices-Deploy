@@ -1,0 +1,39 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "liveVehicles": {
+      ".read": "auth != null && auth.token.role == 'admin'",
+      "$vehicleId": {
+        ".read": "auth != null && (auth.token.role == 'admin' || (auth.token.role == 'collector' && auth.token.vehicleId == $vehicleId))",
+        ".write": "auth != null && auth.token.role == 'collector' && auth.token.vehicleId == $vehicleId && newData.child('vehicleId').val() == $vehicleId && newData.child('collectorId').val() == auth.token.collectorId",
+        ".validate": "newData.hasChildren(['vehicleId', 'collectorId', 'latitude', 'longitude', 'accuracy', 'speed', 'heading', 'timestamp', 'status', 'updatedAt']) && newData.child('vehicleId').isString() && newData.child('collectorId').isString() && newData.child('latitude').isNumber() && newData.child('latitude').val() >= -90 && newData.child('latitude').val() <= 90 && newData.child('longitude').isNumber() && newData.child('longitude').val() >= -180 && newData.child('longitude').val() <= 180 && newData.child('accuracy').isNumber() && newData.child('accuracy').val() >= 0 && newData.child('speed').isNumber() && newData.child('heading').isNumber() && newData.child('timestamp').isNumber() && newData.child('timestamp').val() <= now + 300000 && newData.child('updatedAt').isNumber() && newData.child('updatedAt').val() <= now + 300000 && newData.child('status').isString()",
+        "$other": {
+          ".validate": "$other.matches(/^(vehicleId|collectorId|latitude|longitude|accuracy|altitude|speed|heading|timestamp|status|batteryLevel|updatedAt)$/)"
+        }
+      }
+    },
+    "vehicleStatus": {
+      ".read": "auth != null && auth.token.role == 'admin'",
+      "$vehicleId": {
+        ".read": "auth != null && (auth.token.role == 'admin' || (auth.token.role == 'collector' && auth.token.vehicleId == $vehicleId))",
+        ".write": "auth != null && auth.token.role == 'collector' && auth.token.vehicleId == $vehicleId",
+        ".validate": "newData.hasChildren(['online', 'lastSeen', 'status']) && newData.child('online').isBoolean() && newData.child('lastSeen').isNumber() && newData.child('lastSeen').val() <= now + 300000 && newData.child('status').isString()",
+        "$other": {
+          ".validate": "$other.matches(/^(online|lastSeen|status)$/)"
+        }
+      }
+    },
+    "activeAssignments": {
+      ".read": "auth != null && auth.token.role == 'admin'",
+      "$vehicleId": {
+        ".read": "auth != null && (auth.token.role == 'admin' || (auth.token.role == 'collector' && auth.token.vehicleId == $vehicleId))",
+        ".write": "auth != null && auth.token.role == 'collector' && auth.token.vehicleId == $vehicleId",
+        ".validate": "!newData.exists() || (newData.hasChildren(['assignmentId', 'routeId', 'collectorId', 'startedAt']) && newData.child('collectorId').val() == auth.token.collectorId && newData.child('assignmentId').val() == auth.token.assignmentId && newData.child('routeId').val() == auth.token.routeId && newData.child('startedAt').isNumber() && newData.child('startedAt').val() <= now + 300000)",
+        "$other": {
+          ".validate": "$other.matches(/^(assignmentId|routeId|collectorId|startedAt)$/)"
+        }
+      }
+    }
+  }
+}

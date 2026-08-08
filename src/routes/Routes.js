@@ -29,6 +29,7 @@ const AssetService = require('../services/AssetService');
 const TenantService = require('../services/TenantService');
 const ReportsService = require('../services/ReportsService');
 const RealtimeService = require('../services/RealtimeService');
+const TrackingService = require('../services/TrackingService');
 
 // weather endpoints
 router.get('/weather', WeatherController.getWeatherData);
@@ -48,6 +49,7 @@ router.use(TokenAuth.authenticateToken('tenantMember'));
 router.post('/auth/switch-tenant', AuthController.switchTenant);
 router.post('/notifications/devices', RealtimeService.registerDevice);
 router.get('/notifications', RealtimeService.listNotifications);
+router.post('/tracking/firebase-token', TrackingService.firebaseToken);
 router.get('/tenants/current', TenantService.current);
 router.get('/tenants/mine', TenantService.mine);
 router.get(

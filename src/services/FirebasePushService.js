@@ -26,6 +26,7 @@ function initializeFirebase() {
                         'base64',
                     ).toString('utf8'),
                 }),
+                databaseURL: process.env.FIREBASE_DATABASE_URL || undefined,
             });
         }
     } catch (error) {

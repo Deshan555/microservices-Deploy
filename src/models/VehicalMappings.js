@@ -41,6 +41,21 @@ const VehicleMappingsModel = {
             [RouteID, ExcludedVehicleID, ExcludedVehicleID],
         );
     },
+    findCollectorVehicleAssignment: async (CollectorID) => {
+        return query(
+            `SELECT
+                v.VehicleID,
+                v.VehicleNumber,
+                v.RouteID,
+                r.RoutingID AS AssignmentID,
+                r.CollectorID
+             FROM roadrouting AS r
+             INNER JOIN vehiclemappings AS v ON v.RouteID = r.RoutingID
+             WHERE r.CollectorID = ?
+             LIMIT 1`,
+            [CollectorID],
+        );
+    },
     // addVehicleMappings: async (VehicleID, VehicleNumber, VehicleType, VolumeCapacity, WeightCapacity, NumberPlateID, FactoryID, DriverID, RouteID) => {
     //     try {
     //         return await query('INSERT INTO vehiclemappings (VehicleID, VehicleNumber, VehicleType, VolumeCapacity, WeightCapacity, NumberPlateID, FactoryID, DriverID, RouteID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [VehicleID, VehicleNumber, VehicleType, VolumeCapacity, WeightCapacity, NumberPlateID, FactoryID, DriverID, RouteID]);
