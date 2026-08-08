@@ -49,7 +49,7 @@ router.use(TokenAuth.authenticateToken('tenantMember'));
 router.post('/auth/switch-tenant', AuthController.switchTenant);
 router.post('/notifications/devices', RealtimeService.registerDevice);
 router.get('/notifications', RealtimeService.listNotifications);
-router.post('/tracking/firebase-token', TrackingService.firebaseToken);
+router.post('/tracking/firebase-token', TrackingService.issueFirebaseTrackingToken);
 router.get('/tenants/current', TenantService.current);
 router.get('/tenants/mine', TenantService.mine);
 router.get(
