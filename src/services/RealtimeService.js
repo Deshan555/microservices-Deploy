@@ -18,6 +18,7 @@ function identity(req) {
             ? 'CUSTOMER'
             : 'EMPLOYEE',
         IsSupervisor: supervisorRoles.has(signData.userType),
+        ...signData
     };
 }
 
@@ -62,6 +63,63 @@ const RealtimeService = {
         } catch (error) {
             console.error('Live vehicle list failed:', error);
             errorResponse(res, 'Could not load live vehicle locations.');
+        }
+    },
+
+    recordLocation: async (req, res) => {
+        try {
+            const input = req.body || {};
+            const userIdentity = identity(req);
+            const location = {
+                VehicleID: Number(input.vehicleId || input.VehicleID) || 8001,
+                RouteID: Number(input.routeId || input.RouteID || 4001),
+                Latitude: Number(input.latitude || input.Latitude),
+                Longitude: Number(input.longitude || input.Longitude),
+                AccuracyMeters: Number(input.accuracyMeters),
+                HeadingDegrees: Number(input.headingDegrees),
+                SpeedMetersPerSecond: Number(input.speedMetersPerSecond),
+                CapturedAt: new Date(input.capturedAt || Date.now()),
+            };
+
+            if (!location.Latitude || !location.Longitude) {
+                return errorResponse(res, 'Invalid location telemetry parameters');
+            }
+
+            console.log(`📩 [CLIENT STREAM RECEIVED via REST API] Vehicle #${location.VehicleID} on Route ${location.RouteID} -> Lat: ${location.Latitude}, Lng: ${location.Longitude}`);
+
+            try {
+                await RealtimeModel.upsertVehicleLocation({
+                    ...location,
+                    ReporterID: Number(userIdentity.userId || 1002),
+                });
+            } catch (dbErr) {
+                console.warn('⚠️ Telemetry DB upsert skipped:', dbErr.message);
+            }
+
+            const targetRouteId = location.RouteID || 4001;
+            const payload = {
+                vehicleId: location.VehicleID,
+                vehicleNumber: `Vehicle #${location.VehicleID}`,
+                routeId: targetRouteId,
+                latitude: location.Latitude,
+                longitude: location.Longitude,
+                accuracyMeters: location.AccuracyMeters,
+                headingDegrees: location.HeadingDegrees,
+                speedMetersPerSecond: location.SpeedMetersPerSecond,
+                capturedAt: location.CapturedAt.toISOString(),
+            };
+
+            const tenantId = userIdentity.tenantId || req.tenant?.id || 2;
+            RealtimeHub.emitToTenantStaff(tenantId, 'vehicle:location', payload);
+            RealtimeHub.emitToTopic(`route:${targetRouteId}`, 'vehicle:location', payload);
+
+            return successResponse(res, 'Telemetry location recorded successfully', {
+                ok: true,
+                topic: `route:${targetRouteId}`,
+            });
+        } catch (error) {
+            console.error('REST telemetry update failed:', error);
+            return errorResponse(res, 'Could not record location telemetry: ' + error.message);
         }
     },
 };

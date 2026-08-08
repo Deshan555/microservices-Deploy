@@ -60,6 +60,7 @@ function createRealtimeServer(httpServer) {
     io.use(async (socket, next) => {
         try {
             const token = socket.handshake.auth?.token
+                || socket.handshake.query?.token
                 || socket.handshake.headers.authorization?.replace(/^Bearer\s+/i, '');
             const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
             const signData = signDataFromDecoded(decoded);
@@ -73,8 +74,9 @@ function createRealtimeServer(httpServer) {
             socket.data.identity = signData;
             socket.data.tenant = tenant;
             return next();
-        } catch (_) {
-            return next(new Error('Authentication failed'));
+        } catch (err) {
+            console.error('Socket authentication failed:', err.message);
+            return next(new Error('Authentication failed: ' + err.message));
         }
     });
 
