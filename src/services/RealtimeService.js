@@ -1,4 +1,5 @@
 const RealtimeModel = require('../models/Realtime');
+const RealtimeHub = require('../realtime/RealtimeHub');
 const { signDataFromDecoded } = require('../security/TokenAuth');
 const { successResponse, errorResponse } = require('../utils/responseUtils');
 

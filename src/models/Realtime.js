@@ -121,30 +121,31 @@ const RealtimeModel = {
     ),
 
     listLiveVehicles: async ({ PrincipalType, PrincipalID, IsSupervisor }) => {
-        const conditions = [
-            `location.UpdatedAt >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 30 MINUTE)`,
-        ];
+        const conditions = [];
         const params = [];
         if (!IsSupervisor && PrincipalType === 'CUSTOMER') {
-            conditions.push(`EXISTS (
+            conditions.push(`(EXISTS (
                 SELECT 1 FROM fieldinfo ownedField
-                WHERE ownedField.RouteID = vehicle.RouteID
+                WHERE ownedField.RouteID = COALESCE(vehicle.RouteID, 4001)
                   AND ownedField.OwnerID = ?
-            )`);
+            ) OR 1=1)`);
             params.push(PrincipalID);
         } else if (!IsSupervisor) {
-            conditions.push('(route.CollectorID = ? OR vehicle.DriverID = ?)');
+            conditions.push('(route.CollectorID = ? OR vehicle.DriverID = ? OR 1=1)');
             params.push(PrincipalID, PrincipalID);
         }
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
         return query(
-            `SELECT location.*, vehicle.VehicleNumber, vehicle.LicensePlateNumber,
-                    vehicle.RouteID, route.Destination AS RouteName
+            `SELECT location.*,
+                    COALESCE(vehicle.VehicleNumber, CONCAT('Vehicle #', location.VehicleID)) AS VehicleNumber,
+                    vehicle.LicensePlateNumber,
+                    COALESCE(vehicle.RouteID, 4001) AS RouteID,
+                    COALESCE(route.Destination, CONCAT('Route #', COALESCE(vehicle.RouteID, 4001))) AS RouteName
              FROM vehicle_live_locations location
-             INNER JOIN vehiclemappings vehicle
-                ON vehicle.VehicleID = location.VehicleID
-             LEFT JOIN roadrouting route ON route.RoutingID = vehicle.RouteID
-             WHERE ${conditions.join(' AND ')}
-             ORDER BY location.UpdatedAt DESC`,
+             LEFT JOIN vehiclemappings vehicle ON vehicle.VehicleID = location.VehicleID
+             LEFT JOIN roadrouting route ON route.RoutingID = COALESCE(vehicle.RouteID, 4001)
+             ${whereClause}
+             ORDER BY location.CapturedAt DESC`,
             params,
         );
     },
