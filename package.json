@@ -47,6 +47,7 @@
     "nodemon": "^3.0.2"
   },
   "overrides": {
+    "jwks-rsa": "3.1.0",
     "jose": "4.15.9"
   }
 }
