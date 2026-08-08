@@ -1,6 +1,5 @@
 const RealtimeModel = require('../models/Realtime');
 const FirebasePushService = require('./FirebasePushService');
-const RealtimeHub = require('../realtime/RealtimeHub');
 
 async function notifyTeaCollectionSynchronized({
     CollectionID,
@@ -33,7 +32,6 @@ async function notifyTeaCollectionSynchronized({
         data,
         createdAt: new Date().toISOString(),
     };
-    RealtimeHub.emitToCustomer(CustomerID, 'notification:new', payload);
 
     try {
         const tokenRows = await RealtimeModel.getCustomerTokens(CustomerID);

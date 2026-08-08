@@ -48,8 +48,6 @@ router.use(TokenAuth.authenticateToken('tenantMember'));
 router.post('/auth/switch-tenant', AuthController.switchTenant);
 router.post('/notifications/devices', RealtimeService.registerDevice);
 router.get('/notifications', RealtimeService.listNotifications);
-router.get('/vehicleTracking/live', RealtimeService.listLiveVehicles);
-router.post('/vehicleTracking/location', RealtimeService.recordLocation);
 router.get('/tenants/current', TenantService.current);
 router.get('/tenants/mine', TenantService.mine);
 router.get(

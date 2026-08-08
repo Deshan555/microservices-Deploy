@@ -5,7 +5,6 @@ const logger = require('morgan');
 const cors = require('cors');
 const statusMonitor = require('express-status-monitor'); // Add this line
 const http = require('http');
-const { createRealtimeServer } = require('./realtime/RealtimeSocket');
 const { initializeFirebase } = require('./services/FirebasePushService');
 
 const server = express();
@@ -22,7 +21,6 @@ server.use(statusMonitor()); // Add this line
 server.use('/thaprobane/core/v01', endPoints);
 
 const httpServer = http.createServer(server);
-createRealtimeServer(httpServer);
 initializeFirebase();
 
 httpServer.listen(port, () => {
